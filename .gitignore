@@ -3,6 +3,9 @@ data/
 
 # Training run outputs (checkpoints, wandb, summaries) — large
 outputs/
+# wandb offline runs staged on a node for `wandb sync` (63 MB+ each) — sync, never commit
+wandb/
+wandb_sync_staging*/
 
 # Archived / deprecated training run artifacts
 .deprecated/
