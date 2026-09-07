@@ -15,6 +15,7 @@
 
 CONFIG="configs/gen/emission_dit_pbr2emission_74k_v3_agentic.yaml"
 NAME="emission_dit_pbr2emission_74k_v3_agentic"
+BACKUP_STORE="/3dlg-jupiter-project/lightgen"   # project store as a Solar node sees it (AGENTS.md "Filesystem")
 TAG="venus05"
 REPO="/localscratch/dya78/TRELLIS.2-lightning"
 OUT_SUFFIX="${OUT_SUFFIX:-}"
@@ -140,6 +141,17 @@ if [ \$TRAIN_EXIT -ne 0 ]; then
     echo "Training crashed (exit \$TRAIN_EXIT); restart cap reached. NOT requeueing."; exit \$TRAIN_EXIT
 fi
 echo "Training completed at \$(date)."
+# Post-run backup (AGENTS.md "After a training run"): a CPU-only job on this node mirrors the run
+# into the project store and verifies sha256 on both ends — after the GPUs are released, never
+# touching this job's exit code. BACKUP_STORE is the project's store as seen from a Solar node.
+if [ -f ${REPO}/script/star2/backup_run.sh ]; then
+  sbatch -J backup_${NAME}${OUT_SUFFIX:-} -w "\$(hostname -s)" -c 2 --mem=4G --time=8:00:00 \\
+    --output=/localscratch/dya78/backup_${NAME}${OUT_SUFFIX:-}_%j.out \\
+    --wrap="bash ${REPO}/script/star2/backup_run.sh '${OUTPUT_DIR}' '${BACKUP_STORE}' '${NAME}${OUT_SUFFIX:-}'" \\
+    || echo "WARNING: backup job not submitted — run backup_run.sh by hand."
+else
+  echo "WARNING: ${REPO}/script/star2/backup_run.sh missing on this node — pull the repo, then back up by hand."
+fi
 exit \$TRAIN_EXIT
 EOF
 echo "Submitted: ${NAME}${OUT_SUFFIX}_${TAG}"
