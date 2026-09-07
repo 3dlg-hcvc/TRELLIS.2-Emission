@@ -3,7 +3,8 @@
 # Run it on the cluster's login node from the repo root (hedge.sh does: cd ~/scratch/TRELLIS.2-lightning && bash script/alliance/emission_dit_74k.sh).
 #
 #   bash script/alliance/emission_dit_74k.sh [--dry-run]      # --dry-run prints the sbatch script instead of submitting
-#   env: MAX_STEPS=100 for a bounded probe; WALLTIME=HH:MM:SS (default 03:00:00); CLUSTER=<name> to override detection
+#   env: MAX_STEPS=100 for a bounded probe; OUT_SUFFIX=_probe keeps a probe's outputs (and its wandb id / last.ckpt) out of the real
+#        run's directory; WALLTIME=HH:MM:SS (default 03:00:00); CLUSTER=<name> to override detection
 #
 # Per-cluster facts (compute-access skill, alliance/overview.md, 2026-09-07): account, GPU request form, memory ceiling,
 # sbatch quirks. trillium's sbatch is SciNet's wrapper: no --mem, no --gres, --gpus-per-node=N only, -t in minutes,
@@ -12,7 +13,7 @@ set -u
 CONFIG="configs/gen/emission_dit_74k.yaml"; NAME="emission_dit_74k"; BRANCH="lightgen"
 MAX_STEPS="${MAX_STEPS:-}"; WALLTIME="${WALLTIME:-03:00:00}"; DRY=0; [ "${1:-}" = "--dry-run" ] && DRY=1
 CLUSTER="${CLUSTER:-$(scontrol show config 2>/dev/null | awk -F'= ' '/^ClusterName/{print $2}')}"
-REPO="${REPO:-$HOME/scratch/TRELLIS.2-lightning}"; OUTPUT_DIR="$REPO/outputs/$NAME"; TAR="$HOME/scratch/lightgen/lightgen_74k_dit.tar"
+REPO="${REPO:-$HOME/scratch/TRELLIS.2-lightning}"; OUTPUT_DIR="$REPO/outputs/${NAME}${OUT_SUFFIX:-}"; TAR="$HOME/scratch/lightgen/lightgen_74k_dit.tar"
 MODULES="StdEnv/2023 gcc python/3.11 cuda/12.6 arrow/21.0.0 opencv/4.13.0 sparsehash"
 SIGNAL="#SBATCH --signal=B:SIGTERM@1500"; MEM="#SBATCH --mem=1024G"; GPU="#SBATCH --gpus-per-node=h100:4"; TIME="#SBATCH --time=${WALLTIME}"
 case "$CLUSTER" in
