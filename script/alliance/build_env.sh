@@ -20,6 +20,10 @@ module purge >/dev/null 2>&1; module load $MODULES || { echo "module load failed
 export TMPDIR=${SLURM_TMPDIR:-${TMPDIR:-/tmp}}; export PIP_CACHE_DIR=$TMPDIR/pip-cache-$USER   # EXDEV trap: keep pip's temp off the parallel FS
 [ -x env/bin/python ] || virtualenv --no-download env || exit 1
 source env/bin/activate
+# The loaded modules put their own site-packages on sys.path (EBPYTHONPREFIXES: scipy-stack, ipykernel, opencv, arrow), so a
+# plain 'pip show' reports module-provided packages as installed and the venv silently ends up incomplete. Every pip call
+# and presence check below sees the venv alone.
+VENV_ONLY="env -u PYTHONPATH -u EBPYTHONPREFIXES"
 if [ "$STEP" = prepare ]; then
   # pass 1 + 2: every pin from the wheelhouse first; what it can't find comes from PyPI (the login node has the network).
   # pip stays what virtualenv seeded; setuptools/wheel ARE installed — the --no-build-isolation compiles need them.
@@ -27,16 +31,16 @@ if [ "$STEP" = prepare ]; then
   : > "$LOG.pypi"; ok=0; miss=0
   while read -r pin; do
     name=${pin%%==*}
-    if pip show -q "$name" 2>/dev/null; then ok=$((ok+1)); continue; fi
-    if pip install --no-index --no-deps -q "$pin" 2>/dev/null; then ok=$((ok+1)); else echo "$pin" >> "$LOG.pypi"; miss=$((miss+1)); fi
+    if $VENV_ONLY pip show -q "$name" 2>/dev/null; then ok=$((ok+1)); continue; fi
+    if $VENV_ONLY pip install --no-index --no-deps -q "$pin" 2>/dev/null; then ok=$((ok+1)); else echo "$pin" >> "$LOG.pypi"; miss=$((miss+1)); fi
   done < "$LOG.pins"
   echo "pass 1 (wheelhouse): $ok installed/present, $miss deferred to PyPI"
   if [ -s "$LOG.pypi" ]; then
     echo "pass 2 (PyPI): $(tr '\n' ' ' < "$LOG.pypi")"
     while read -r pin; do name=${pin%%==*}; ver=${pin#*==}; ver=${ver%%+*}    # drop +computecanada tags for PyPI
-      pip install --no-deps -q "$name==$ver" 2>/dev/null || pip install --no-deps -q "$name" || echo "  FAILED: $pin"; done < "$LOG.pypi"
+      $VENV_ONLY pip install --no-deps -q "$name==$ver" 2>/dev/null || $VENV_ONLY pip install --no-deps -q "$name" || echo "  FAILED: $pin"; done < "$LOG.pypi"
   fi
-  pip check 2>&1 | head -20     # what --no-deps skipped; the six extensions are still missing here, that is expected
+  $VENV_ONLY pip check 2>&1 | head -20     # what --no-deps skipped; the six extensions are still missing here, that is expected
   # sources for 'compile' — exactly what setup.sh clones (it clones into /tmp on the build node, which has no network here)
   mkdir -p "$SRC"; cd "$SRC"
   [ -d nvdiffrast ] || git clone -q -b v0.4.0 https://github.com/NVlabs/nvdiffrast.git nvdiffrast
@@ -52,11 +56,11 @@ else
   echo "CUDA_HOME=$CUDA_HOME nvcc: $(nvcc --version 2>&1 | tail -1)"
   for pkg in nvdiffrast:nvdiffrast nvdiffrec_render:nvdiffrec cumesh:CuMesh flex_gemm:FlexGEMM o_voxel:"$REPO/o-voxel" utils3d:utils3d; do
     mod=${pkg%%:*}; d=${pkg#*:}; [ "${d#/}" = "$d" ] && d="$SRC/$d"
-    if python -c "import $mod" 2>/dev/null; then echo "present: $mod"; continue; fi
+    if $VENV_ONLY python -c "import $mod" 2>/dev/null; then echo "present: $mod"; continue; fi
     echo "--- building $mod from $d $(date +%H:%M:%S)"
     # trillium's $HOME is a read-only export on compute nodes (mkdir fails with EACCES while 'test -w' still says yes);
     # FlexGEMM's setup.py mkdirs ~/.flex_gemm, so every build runs with HOME on the node-local disk.
-    HOME="$TMPDIR" pip install --no-build-isolation --no-deps -q "$d" || echo "FAILED to build $mod"
+    HOME="$TMPDIR" $VENV_ONLY pip install --no-build-isolation --no-deps -q "$d" || echo "FAILED to build $mod"
   done
   echo "smoke test"
   python - <<'PY'
