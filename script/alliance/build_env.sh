@@ -47,7 +47,7 @@ if [ "$STEP" = prepare ]; then
   ls -d "$SRC"/*
 else
   # pass 3: the extensions setup.sh compiles, from the sources 'prepare' cloned, with setup.sh's flags (+ --no-deps: no network)
-  export TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0"    # A100 / A40 / L40S-RTX40xx / H100+H200
+  export TORCH_CUDA_ARCH_LIST="8.9;9.0"    # L40S (killarney, vulcan) + H100 (all five): the only GPUs these envs will see
   export CUDA_HOME=${CUDA_HOME:-$(dirname "$(dirname "$(command -v nvcc || echo /nonexistent/bin/nvcc)")")}
   echo "CUDA_HOME=$CUDA_HOME nvcc: $(nvcc --version 2>&1 | tail -1)"
   for pkg in nvdiffrast:nvdiffrast nvdiffrec_render:nvdiffrec cumesh:CuMesh flex_gemm:FlexGEMM o_voxel:"$REPO/o-voxel" utils3d:utils3d; do
