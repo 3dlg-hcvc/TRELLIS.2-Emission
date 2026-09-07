@@ -54,8 +54,9 @@ else
     mod=${pkg%%:*}; d=${pkg#*:}; [ "${d#/}" = "$d" ] && d="$SRC/$d"
     if python -c "import $mod" 2>/dev/null; then echo "present: $mod"; continue; fi
     echo "--- building $mod from $d $(date +%H:%M:%S)"
-    # trillium compute nodes mount $HOME read-only; FlexGEMM's setup.py mkdirs ~/.flex_gemm, so build with a writable HOME
-    HOME="$([ -w "$HOME" ] && echo "$HOME" || echo "$TMPDIR")" pip install --no-build-isolation --no-deps -q "$d" || echo "FAILED to build $mod"
+    # trillium's $HOME is a read-only export on compute nodes (mkdir fails with EACCES while 'test -w' still says yes);
+    # FlexGEMM's setup.py mkdirs ~/.flex_gemm, so every build runs with HOME on the node-local disk.
+    HOME="$TMPDIR" pip install --no-build-isolation --no-deps -q "$d" || echo "FAILED to build $mod"
   done
   echo "smoke test"
   python - <<'PY'

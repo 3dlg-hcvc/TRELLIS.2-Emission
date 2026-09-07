@@ -66,7 +66,7 @@ export HF_HOME=\$HOME/scratch/.cache/huggingface HF_HUB_OFFLINE=1 TRANSFORMERS_O
 # wandb goes online only where it can: a login (~/.netrc) AND a reachable API; otherwise offline — 'wandb sync outputs/<run>/wandb/offline-run-*' later from a login node.
 if [ -f \$HOME/.netrc ] && curl -sSI -m 8 https://api.wandb.ai >/dev/null 2>&1; then echo "wandb: online"; else export WANDB_MODE=offline; echo "wandb: OFFLINE (no login or no internet on this node)"; fi
 # trillium compute nodes mount \$HOME read-only: every per-user cache that would land there goes to the node-local disk instead.
-if [ ! -w \$HOME ]; then export TRITON_CACHE_DIR=\$SLURM_TMPDIR/.triton CUDA_CACHE_PATH=\$SLURM_TMPDIR/.nv MPLCONFIGDIR=\$SLURM_TMPDIR/.mpl WANDB_CACHE_DIR=\$SLURM_TMPDIR/.wandb WANDB_CONFIG_DIR=\$SLURM_TMPDIR/.wandb_cfg XDG_CACHE_HOME=\$SLURM_TMPDIR/.cache; echo "HOME read-only: caches redirected to \$SLURM_TMPDIR"; fi
+if ! ( : > \$HOME/.wtest.\$\$ ) 2>/dev/null; then export TRITON_CACHE_DIR=\$SLURM_TMPDIR/.triton CUDA_CACHE_PATH=\$SLURM_TMPDIR/.nv MPLCONFIGDIR=\$SLURM_TMPDIR/.mpl WANDB_CACHE_DIR=\$SLURM_TMPDIR/.wandb WANDB_CONFIG_DIR=\$SLURM_TMPDIR/.wandb_cfg XDG_CACHE_HOME=\$SLURM_TMPDIR/.cache; echo "HOME read-only: caches redirected to \$SLURM_TMPDIR"; else rm -f \$HOME/.wtest.\$\$; fi
 set -o pipefail
 srun python -u train.py \\
     --config ${CONFIG} --output_dir ${OUTPUT_DIR} --ckpt last --num_gpus 4 \\
