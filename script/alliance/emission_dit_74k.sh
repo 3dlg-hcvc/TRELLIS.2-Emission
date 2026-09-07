@@ -53,7 +53,8 @@ echo "====================================== Job \${SLURM_JOB_NAME} (\${SLURM_JO
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 module load ${MODULES}
 cd ${REPO}
-git fetch origin ${BRANCH} && git checkout ${BRANCH} && git pull --ff-only origin ${BRANCH}
+# Code is updated on the login node at submit time (below); compute nodes on nibi/rorqual/trillium have no route to GitHub, so this is a bounded retry only.
+timeout 30 git fetch origin ${BRANCH} 2>/dev/null && git checkout -q ${BRANCH} && git pull -q --ff-only origin ${BRANCH} || echo "git update skipped in-job (no network or local changes)"
 source ${REPO}/env/bin/activate
 cd \$SLURM_TMPDIR
 bash ${REPO}/script/fir/unpack_74k_dit_data.sh ${TAR}
@@ -86,4 +87,8 @@ fi
 echo "Training completed at \$(date). Outputs: ${OUTPUT_DIR} — back them up to the project store from the workstation (compute-access post-run-backup.md)."
 JOB
 sed -i '/^$/d' "$JOB"   # drop the blank lines left by empty MEM/SIGNAL on trillium
-if [ $DRY = 1 ]; then cat "$JOB"; else cd -P "$REPO" && sbatch "$JOB"; fi   # -P: killarney's submit plugin wants a physical /scratch cwd
+if [ $DRY = 1 ]; then cat "$JOB"; exit 0; fi
+cd -P "$REPO" || exit 2                                   # -P: killarney's submit plugin wants a physical /scratch cwd
+# Update the code here, on the login node (it has the network); red line 9: never edit on the cluster, pull what was pushed.
+git fetch -q origin "$BRANCH" && git checkout -q "$BRANCH" && git pull -q --ff-only origin "$BRANCH" || echo "WARNING: git pull --ff-only failed — local changes or diverged branch; submitting the tree as it is"
+sbatch "$JOB"
