@@ -62,7 +62,7 @@ mkdir -p log; TS=\$(date +%Y%m%d-%H%M%S); LOG="log/\${TS}-${NAME}-${CLUSTER}.log
 export PYTORCH_ALLOC_CONF=expandable_segments:True PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export FLEX_GEMM_USE_AUTOTUNE_CACHE=0 FLEX_GEMM_AUTOSAVE_AUTOTUNE_CACHE=0   # NFS-home autotune cache races between ranks
 # Pretrained weights (DINOv3) come from a Hugging Face cache staged in scratch — compute nodes on nibi/rorqual/trillium have no internet.
-export HF_HOME=\$HOME/scratch/.cache/huggingface HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+export HF_HOME=\$HOME/scratch/.cache/huggingface HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TORCH_HOME=\$HOME/scratch/.cache/torch   # vgg16 for lpips lives there too
 # wandb goes online only where it can: a login (~/.netrc) AND a reachable API; otherwise offline — 'wandb sync outputs/<run>/wandb/offline-run-*' later from a login node.
 if [ -f \$HOME/.netrc ] && curl -sSI -m 8 https://api.wandb.ai >/dev/null 2>&1; then echo "wandb: online"; else export WANDB_MODE=offline; echo "wandb: OFFLINE (no login or no internet on this node)"; fi
 # trillium compute nodes mount \$HOME read-only: every per-user cache that would land there goes to the node-local disk instead.
