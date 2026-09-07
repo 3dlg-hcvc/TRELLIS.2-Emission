@@ -54,7 +54,8 @@ else
     mod=${pkg%%:*}; d=${pkg#*:}; [ "${d#/}" = "$d" ] && d="$SRC/$d"
     if python -c "import $mod" 2>/dev/null; then echo "present: $mod"; continue; fi
     echo "--- building $mod from $d $(date +%H:%M:%S)"
-    pip install --no-build-isolation --no-deps -q "$d" || echo "FAILED to build $mod"
+    # trillium compute nodes mount $HOME read-only; FlexGEMM's setup.py mkdirs ~/.flex_gemm, so build with a writable HOME
+    HOME="$([ -w "$HOME" ] && echo "$HOME" || echo "$TMPDIR")" pip install --no-build-isolation --no-deps -q "$d" || echo "FAILED to build $mod"
   done
   echo "smoke test"
   python - <<'PY'
