@@ -6,8 +6,8 @@
 #   env: MAX_STEPS=100 for a bounded probe; WALLTIME=HH:MM:SS (default 03:00:00); CLUSTER=<name> to override detection
 #
 # Per-cluster facts (compute-access skill, alliance/overview.md, 2026-09-07): account, GPU request form, memory ceiling,
-# module set, sbatch quirks. trillium's sbatch is SciNet's wrapper: no --mem, no --gres, --gpus-per-node=N only, -t in
-# minutes, no --signal; it needs a script file, so every cluster submits a file (never stdin).
+# sbatch quirks. trillium's sbatch is SciNet's wrapper: no --mem, no --gres, --gpus-per-node=N only, -t in minutes,
+# no --signal; it needs a script file, so every cluster submits a file (never stdin). The module set is fir's everywhere.
 set -u
 CONFIG="configs/gen/emission_dit_74k.yaml"; NAME="emission_dit_74k"; BRANCH="lightgen"
 MAX_STEPS="${MAX_STEPS:-}"; WALLTIME="${WALLTIME:-03:00:00}"; DRY=0; [ "${1:-}" = "--dry-run" ] && DRY=1
@@ -22,8 +22,7 @@ case "$CLUSTER" in
   killarney) ACCOUNT=aip-msavva ;;                                                    # 8xH100 nodes, 2060G: half a node
   tamia)     ACCOUNT=aip-msavva; MEM="#SBATCH --mem=900G"; GPU="#SBATCH --gres=gpu:h100:4" ;;   # whole 4xH100 node (1000G)
   grillium|trillium*) ACCOUNT=def-msavva; MEM=""; SIGNAL=""; GPU="#SBATCH --gpus-per-node=4"
-             TIME="#SBATCH -t $(( $(echo "$WALLTIME" | awk -F: '{print $1*60+$2}') ))"     # minutes
-             MODULES="StdEnv/2023 gcc python/3.11 nvhpc/25.1 arrow/21.0.0 opencv/4.13.0 sparsehash" ;;
+             TIME="#SBATCH -t $(( $(echo "$WALLTIME" | awk -F: '{print $1*60+$2}') ))" ;;     # minutes; same modules as fir
   *) echo "unknown cluster '$CLUSTER' — set CLUSTER=…"; exit 2 ;;
 esac
 [ -f "$TAR" ] || { echo "dataset tar missing: $TAR"; [ $DRY = 1 ] || exit 2; }

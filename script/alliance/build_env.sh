@@ -3,8 +3,8 @@
 #   bash script/alliance/build_env.sh prepare [--modules "…"]   # LOGIN node (has internet): venv + wheelhouse pins + PyPI pins + clone the extension sources
 #   bash script/alliance/build_env.sh compile [--modules "…"]   # inside an allocation (compute nodes have no internet on nibi/rorqual/trillium): compile the CUDA extensions, smoke test
 # Run both from the repo root. Idempotent: re-run after a failure and it skips what is already there.
-# Modules: fir's exact set by default (its env is Python 3.11.5; the launchers load the same modules). trillium-gpu has no
-# cuda/* module — pass --modules "StdEnv/2023 gcc python/3.11 nvhpc/25.1 arrow/21.0.0 opencv/4.13.0 sparsehash".
+# Modules: fir's exact set by default (its env is Python 3.11.5; the launchers load the same modules); it loads verbatim on
+# nibi, rorqual, killarney, tamia and trillium-gpu (checked 2026-09-07). --modules "…" overrides it.
 set -u
 STEP=${1:-}; shift || true
 MODULES="StdEnv/2023 gcc python/3.11 cuda/12.6 arrow/21.0.0 opencv/4.13.0 sparsehash"
