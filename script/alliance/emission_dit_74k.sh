@@ -20,7 +20,7 @@ case "$CLUSTER" in
   nibi)      ACCOUNT=def-msavva_gpu ;;
   rorqual)   ACCOUNT=def-msavva_gpu; MEM="#SBATCH --mem=450G" ;;                       # 4xH100 nodes carry 510G
   killarney) ACCOUNT=aip-msavva ;;                                                    # 8xH100 nodes, 2060G: half a node
-  tamia)     ACCOUNT=aip-msavva; MEM="#SBATCH --mem=900G"; GPU="#SBATCH --gres=gpu:h100:4" ;;   # whole 4xH100 node (1000G)
+  tamia)     ACCOUNT=aip-msavva; MEM="#SBATCH --mem=450G"; GPU="#SBATCH --gres=gpu:h100:4" ;;   # whole 4xH100 node: 48 cpu, 500000M (the 1000G nodes are the H200 ones)
   grillium|trillium*) ACCOUNT=def-msavva; MEM=""; SIGNAL=""; GPU="#SBATCH --gpus-per-node=4"
              TIME="#SBATCH -t $(( $(echo "$WALLTIME" | awk -F: '{print $1*60+$2}') ))" ;;     # minutes; same modules as fir
   *) echo "unknown cluster '$CLUSTER' — set CLUSTER=…"; exit 2 ;;
