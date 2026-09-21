@@ -1,0 +1,156 @@
+# _lightgenbench_v1 (2026-09-20): the paper's pbr->emission DiT recipe
+# (emission_dit_pbr2emission_74k_v3_agentic.yaml, below, unchanged) on the released dataset,
+# Hugging Face 3dlg-hcvc/LightgenBench: train 36,426 / val 200 / test 200. What differs: the
+# dataset paths (placeholders, overridden by script/alliance/lightgenbench_v1.sh to the tree it
+# unpacks in $SLURM_TMPDIR), emission_latent_name, emission_normalization and wandb_name.
+# pbr/shape normalization are the paper config's, unchanged (production stats, as there).
+#
+# emission_normalization BELOW IS STILL THE PAPER RUN'S AND IS NOT VALID FOR THIS RUN until it is
+# replaced by the normalization_stats.json of the latents encoded with the _lightgenbench_v1 VAE.
+# The launcher refuses to train while the two disagree.
+# Spec: lightgen docs/superpowers/specs/2026-09-20-trellis2-emission-lightgenbench-retrain-design.md
+#
+# _agentic (2026-08-24): identical to emission_dit_pbr2emission_74k_v3.yaml
+# except (1) emission_latent_name -> the latents encoded by the AGENTIC VAE
+# (emission_vae_pbr2emission_74k_v3_agentic, best step0035200-0.0058),
+# (2) split_json -> _agentic (train 36,255; val 387 / test 388 unchanged),
+# (3) emission_normalization -> regenerated stats for those latents (encoded on
+# the local 4090 2026-08-24; 35,174,674 tokens / 72,421 shapes), and
+# (4) wandb_name. pbr/shape normalization unchanged — those latent sets are unchanged.
+# Spec: lightgen docs/superpowers/specs/2026-08-22-agentic-filtered-baselines-retrain-design.md
+#
+# Emission DiT — 74k TWO-STREAM (mirror of emission_dit_74k.yaml for the
+# two-stream emission VAE instead of the channel-hijack baseline).
+#
+# Baseline (emission_dit_74k.yaml): channel-hijack VAE latents, in=64
+#   (32 emission + 32 shape), skip_pbr_cond=true, full weight reuse incl input proj.
+# This config:                      two-stream VAE latents, in=96
+#   (32 emission + 32 shape + 32 PBR), skip_pbr_cond=false. The two-stream
+#   decoder consumes concat(z_emission, z_pbr), so the DiT MUST condition on the
+#   PBR latent — hence 96-ch input. The pretrained imgshape2tex DiT has a 64-ch
+#   input proj, so on finetune the input projection is RE-INITIALIZED (shape
+#   mismatch); all 30 transformer blocks are still loaded. This 96-ch recipe is
+#   the one validated at 10-sample overfit (emission_dit_10sample_overfit.yaml).
+#
+# Normalization: emission + PBR stats below are the real 74k values from
+# script/fir/encode_twostream_dit_latents_74k.sh (fir job 44913544; 36M tokens /
+# 72,549 samples each). shape_normalization is the production shape-latent stats.
+
+models:
+  denoiser:
+    name: ElasticSLatFlowModel
+    args:
+      resolution: 32
+      in_channels: 96
+      out_channels: 32
+      model_channels: 1536
+      cond_channels: 1024
+      num_blocks: 30
+      num_heads: 12
+      mlp_ratio: 5.3334
+      pe_mode: rope
+      share_mod: true
+      initialization: scaled
+      qk_rms_norm: true
+      qk_rms_norm_cross: true
+
+dataset:
+  name: LightGenSLatEmissionLatent
+  args:
+    data_root: data/lightgenbench
+    parquet_file: data/lightgenbench/df_lightgenbench.parquet
+    emission_latent_name: emission_pbr2emission_lightgenbench_v1
+    pbr_latent_name: tex_enc_next_dc_f16c32_fp16_256   # USED here (skip_pbr_cond=false)
+    shape_latent_name: shape_enc_next_dc_f16c32_fp16_256
+    thumbnail_dir: data/lightgenbench/thumbnails
+    image_size: 512
+    resolution: 256
+    split: train
+    split_json: data/lightgenbench/data_splits_lightgenbench.json
+    skip_pbr_cond: false
+    emission_normalization:
+      # emission_pbr2emission_74k_v3_agentic latents: 35,174,674 tokens / 72,421
+      # shapes, from the encode's aggregated normalization_stats.json (encoded on
+      # the local 4090 2026-08-24 with the _agentic VAE step0035200-0.0058;
+      # encode_emission_twostream_dataset.py --aggregate_stats).
+      # These MUST be regenerated with the latents — arrays from any other VAE
+      # belong to a different latent space and would mis-scale every input.
+      # (Token count matches _nonzero_nocopy's because both encode the same 72,421
+      # shapes — the whole corpus, not the split; only the VAE differs.)
+      mean: [0.575547, 3.064512, -0.515424, -1.867889, 3.387111, -0.461960, -0.216747, 2.693925, -1.533284, 1.973074, 0.485273, -1.494008, 0.115853, -1.327231, -5.343301, 0.794145, -2.170729, 5.871342, 1.973180, 2.165674, 2.458411, -0.776467, -3.604328, -3.975414, -0.439508, 0.314874, 1.655697, -0.774451, 5.550764, 0.126137, -1.289764, -2.679087]
+      std: [3.529771, 2.651692, 3.050396, 2.722989, 3.465079, 2.505355, 2.872898, 3.319524, 2.783057, 3.085108, 2.622613, 3.133416, 2.386602, 2.629587, 3.411531, 2.784873, 2.408793, 3.376271, 2.502225, 2.583560, 2.707238, 2.850099, 2.904299, 2.984878, 3.070941, 3.448983, 3.150782, 2.485992, 3.140084, 3.340170, 2.048811, 2.971404]
+    pbr_normalization:
+      # Production tex_enc_next_dc_f16c32_fp16_256 latents over the same 72,549 samples.
+      mean: [2.459846, 4.065421, 0.413267, 0.327300, 1.756047, -0.557769, 0.732136, -0.028239, -0.333709, 0.284831, -0.308731, -1.348872, 0.354504, -0.674031, -2.027810, -0.833997, -1.920284, 2.932981, 0.134387, 1.969363, 0.678580, 0.761813, -1.862095, -2.311098, 1.546501, 0.784206, 0.257996, 0.305836, 2.142905, 0.212852, -1.674991, -1.769278]
+      std: [2.855203, 3.116590, 2.910467, 2.834188, 3.303444, 2.249022, 2.649241, 3.093229, 2.968259, 3.015557, 2.401077, 3.488232, 3.141837, 2.682025, 3.390326, 3.154349, 2.612940, 3.317611, 3.436141, 2.515703, 2.958744, 2.964897, 3.469870, 2.732758, 2.956136, 2.729710, 2.777081, 2.362214, 3.067848, 2.596191, 2.911985, 2.892137]
+    shape_normalization:
+      # Production shape stats copied verbatim from emission_dit_74k.yaml
+      # (slat_flow_imgshape2tex_dit_1_3B_512_bf16 shape_slat_normalization). The
+      # shape latents ARE the production shape_enc_next_dc_f16c32_fp16_256, so
+      # these are correct (NOT a placeholder).
+      mean: [0.824360, 0.177588, -0.402463, -0.238279, 0.677238, 0.400715, 1.377012, -0.839755, -0.393987, 2.328088, -0.202056, -1.949775, 0.520851, -1.839942, -1.891552, -0.579264, 0.169120, -2.209464, 1.193050, 0.112555, 3.359892, 1.335425, -0.738521, -1.491615, -0.079224, 1.956989, 1.453538, 0.632970, 0.502503, -3.232140, -2.777164, 1.399458]
+      std: [5.926518, 4.979627, 5.491126, 5.491906, 5.523422, 4.744849, 5.393280, 5.646907, 5.625599, 5.776607, 5.188654, 5.528593, 5.635101, 5.465947, 5.822789, 4.886873, 4.910953, 5.324397, 5.612061, 6.026475, 5.171388, 5.568315, 5.594320, 5.607075, 5.704898, 5.593988, 6.263956, 5.558825, 6.475168, 5.047051, 5.351663, 5.633105]
+
+trainer:
+  name: ImageConditionedSparseFlowMatchingCFGTrainer
+  args:
+    max_steps: 50000
+    batch_size_per_gpu: 8     # probe may bump to 16
+    # batch_split MUST be 1 with the elastic LinearMemoryController (see
+    # emission_dit_74k.yaml for the full rationale).
+    batch_split: 1
+    optimizer:
+      name: AdamW
+      args:
+        lr: 0.0001
+        weight_decay: 0.01
+        betas: [0.9, 0.95]
+        eps: 1.0e-08
+    lr_scheduler:
+      name: LinearWarmupLRScheduler
+      args:
+        warmup_steps: 1000
+    ema_rate:
+    - 0.9999
+    t_schedule:
+      name: uniform
+      args: {}
+    sigma_min: 1.0e-05
+    p_uncond: 0.1
+    mix_precision_mode: amp
+    mix_precision_dtype: bfloat16
+    elastic:
+      name: LinearMemoryController
+      args:
+        target_ratio: 0.75
+        max_mem_ratio_start: 0.5
+    grad_clip:
+      name: AdaptiveGradClipper
+      args:
+        max_norm: 1.0
+        clip_percentile: 95
+    finetune_ckpt:
+      denoiser: microsoft/TRELLIS.2-4B/ckpts/slat_flow_imgshape2tex_dit_1_3B_512_bf16
+    i_log: 50
+    i_sample: 5000
+    skip_initial_samples: true
+    dataloader_num_workers: 8
+    use_balanced_sampler: true
+    num_sanity_val_steps: 0
+    val_split_name: val
+    val_every_epochs: 1        # recalibrate after the probe gives steps/sec
+    val_batch_size_per_gpu: 4
+    save_top_k: 1
+    monitor_metric: val/loss
+    monitor_mode: min
+    # last.ckpt is 20 GB; fir Lustre write ~10-13 min. 2000-step cadence (~20 min
+    # at 1.6 it/s) > write time so each refresh completes cleanly (see baseline).
+    ckpt_last_every_n_steps: 2000
+    wandb_enable: true
+    wandb_project: LightGen
+    wandb_name: dit_pbr->emission_lightgenbench_v1
+    image_cond_model:
+      name: DinoV3FeatureExtractor
+      args:
+        model_name: facebook/dinov3-vitl16-pretrain-lvd1689m
+        image_size: 512
