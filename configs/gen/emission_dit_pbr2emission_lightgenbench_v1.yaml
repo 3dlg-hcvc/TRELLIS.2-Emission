@@ -5,9 +5,9 @@
 # unpacks in $SLURM_TMPDIR), emission_latent_name, emission_normalization and wandb_name.
 # pbr/shape normalization are the paper config's, unchanged (production stats, as there).
 #
-# emission_normalization BELOW IS STILL THE PAPER RUN'S AND IS NOT VALID FOR THIS RUN until it is
-# replaced by the normalization_stats.json of the latents encoded with the _lightgenbench_v1 VAE.
-# The launcher refuses to train while the two disagree.
+# emission_normalization below is the stats of the emission_pbr2emission_lightgenbench_v1 latents
+# (encoded 2026-09-22 with the _lightgenbench_v1 VAE); the launcher refuses to train if the staged
+# latents' normalization_stats.json disagrees with it.
 # Spec: lightgen docs/superpowers/specs/2026-09-20-trellis2-emission-lightgenbench-retrain-design.md
 #
 # _agentic (2026-08-24): identical to emission_dit_pbr2emission_74k_v3.yaml
@@ -69,16 +69,13 @@ dataset:
     split_json: data/lightgenbench/data_splits_lightgenbench.json
     skip_pbr_cond: false
     emission_normalization:
-      # emission_pbr2emission_74k_v3_agentic latents: 35,174,674 tokens / 72,421
-      # shapes, from the encode's aggregated normalization_stats.json (encoded on
-      # the local 4090 2026-08-24 with the _agentic VAE step0035200-0.0058;
-      # encode_emission_twostream_dataset.py --aggregate_stats).
-      # These MUST be regenerated with the latents — arrays from any other VAE
-      # belong to a different latent space and would mis-scale every input.
-      # (Token count matches _nonzero_nocopy's because both encode the same 72,421
-      # shapes — the whole corpus, not the split; only the VAE differs.)
-      mean: [0.575547, 3.064512, -0.515424, -1.867889, 3.387111, -0.461960, -0.216747, 2.693925, -1.533284, 1.973074, 0.485273, -1.494008, 0.115853, -1.327231, -5.343301, 0.794145, -2.170729, 5.871342, 1.973180, 2.165674, 2.458411, -0.776467, -3.604328, -3.975414, -0.439508, 0.314874, 1.655697, -0.774451, 5.550764, 0.126137, -1.289764, -2.679087]
-      std: [3.529771, 2.651692, 3.050396, 2.722989, 3.465079, 2.505355, 2.872898, 3.319524, 2.783057, 3.085108, 2.622613, 3.133416, 2.386602, 2.629587, 3.411531, 2.784873, 2.408793, 3.376271, 2.502225, 2.583560, 2.707238, 2.850099, 2.904299, 2.984878, 3.070941, 3.448983, 3.150782, 2.485992, 3.140084, 3.340170, 2.048811, 2.971404]
+      # emission_pbr2emission_lightgenbench_v1 latents: 16322007 tokens / 36826 shapes (the whole
+      # release, not the train split), from the encode's aggregated normalization_stats.json
+      # (rorqual job 21565557, 2026-09-22, VAE step0035400-0.0036.ckpt sha256 1def8d3a…69de;
+      # encode_emission_twostream_dataset.py --aggregate_stats). feat range -34.726 .. 38.499.
+      # These MUST match the staged latents — the launcher checks them against the tar's stats file.
+      mean: [-0.49991846084594727, 3.840801239013672, -1.3549283742904663, -2.2479257583618164, 4.340563774108887, -0.5417261719703674, -0.22070133686065674, 3.4459738731384277, -2.2381527423858643, 2.450904607772827, 1.0124858617782593, -2.895432233810425, 0.9849740862846375, -2.2282180786132812, -6.312403202056885, -0.14937609434127808, -2.548417806625366, 6.3771162033081055, 2.2857205867767334, 1.6482157707214355, 2.598217248916626, -1.836235761642456, -3.863652467727661, -4.607054710388184, -0.7636655569076538, 0.24985486268997192, 2.0570647716522217, -0.5680924654006958, 5.4902119636535645, 0.13011100888252258, -1.6684380769729614, -3.1433653831481934]
+      std: [3.0104901790618896, 2.595674991607666, 2.679351568222046, 2.618288993835449, 3.2503621578216553, 2.522343635559082, 3.006690263748169, 3.1320528984069824, 2.624333620071411, 3.0638256072998047, 2.517951250076294, 2.8298025131225586, 2.1840291023254395, 2.596125364303589, 3.1539266109466553, 2.4548797607421875, 2.335315465927124, 3.064091444015503, 2.367276430130005, 2.362698554992676, 2.468536853790283, 2.535972833633423, 2.6541008949279785, 2.8236730098724365, 3.072847843170166, 3.7248048782348633, 3.2415668964385986, 2.367354393005371, 2.739168167114258, 3.6655173301696777, 1.9162994623184204, 2.929597854614258]
     pbr_normalization:
       # Production tex_enc_next_dc_f16c32_fp16_256 latents over the same 72,549 samples.
       mean: [2.459846, 4.065421, 0.413267, 0.327300, 1.756047, -0.557769, 0.732136, -0.028239, -0.333709, 0.284831, -0.308731, -1.348872, 0.354504, -0.674031, -2.027810, -0.833997, -1.920284, 2.932981, 0.134387, 1.969363, 0.678580, 0.761813, -1.862095, -2.311098, 1.546501, 0.784206, 0.257996, 0.305836, 2.142905, 0.212852, -1.674991, -1.769278]
