@@ -1,9 +1,9 @@
 # TRELLIS.2-Emission refactor — plan
 
 Turn the `lightgen` branch into a clean TRELLIS.2-Emission: only the code behind the paper and release
-runs of the pbr→emission chain (emission VAE → emission latents → DiT), our changes as edits on
-upstream's modules or as new files beside upstream's in its layout, generic entry points for
-LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/REFACTOR_TODO.md` (branch
+runs of the pbr→emission chain (emission VAE → emission latents → DiT), our code in files of its
+own beside upstream's (the LightGen part kept separate from upstream's PBR part), generic entry
+points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/REFACTOR_TODO.md` (branch
 `refactor`); the rules below are the same unless a line says otherwise.
 
 ## Progress
@@ -11,22 +11,22 @@ LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/REFACTOR_TODO
 - [x] 1. Housekeeping
 - [ ] 2. Dead root files and one-off scripts
 - [ ] 3. `archive/`, patches, stale reports and plans, stale ignore rules
-- [ ] 4. Vendored and upstream demo material (per D12)
-- [ ] 5. Launchers (per D17)
+- [ ] 4. Vendored Pillow (`blender_packages/`)
+- [ ] 5. Launchers
 - [ ] 5b. Move the kept cluster scripts into `script/internal/`
-- [ ] 6. Configs (per D17)
+- [ ] 6. Configs
 - [ ] 7. Check setup: inference gate, VAE table, encode check, training check, noise baselines (no code change)
-- [ ] 8. Our modules in upstream's layout (per D13)
+- [ ] 8. Our dataset and trainer files beside upstream's (D13)
 - [ ] 9. Coverage run (no code change)
 - [ ] 10. The predictor `predict_emission_voxels_twostream.py`
 - [ ] 11. The chain scripts in `data_toolkit/`
-- [ ] 12. Our hooks in upstream's `train.py`, `basic.py`, `callbacks.py`
+- [ ] 12. Our hooks out of upstream's `train.py`, `basic.py`, `callbacks.py` (D13)
 - [ ] 13. The viewers in `vis/`
 - [ ] 14. Environment files
 - [ ] 15. Release layer: generic entry points for LightgenBench users
 - [ ] 16. Docs
-- [ ] 17. Merge (per D11) and the directory name (per D4) (needs Dongchen's go)
-- [ ] 18. Cut-over (optional, per D8)
+- [ ] 17. Merge (per D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
+- [ ] 18. Cut-over to the new code (D8)
 
 ## How we work
 
@@ -57,10 +57,11 @@ LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/REFACTOR_TODO
   today differs from them by up to 1.28e-3 on `pred`.
 - Upstream is branch `main` (`98c2548`): the lab's Lightning port of microsoft/TRELLIS.2, squashed
   into `67f883b`; no microsoft commit is recorded and microsoft's repo is not a remote.
-  `git diff main -- <file>` shows what we changed. Our changes are edits to upstream's modules (as
-  `train.py`, `basic.py` and `callbacks.py` already are) or new files beside upstream's in its
-  layout (D13); a file of ours that only keeps a published registry name alive is a one-line alias.
-  Upstream code we do not use stays untouched, even inside files we edit.
+  `git diff main -- <file>` shows what we changed. Our code lives in files of its own beside
+  upstream's, never as edits inside upstream's files (D13): inside an upstream file only the line
+  that registers our class stays (`TRAINER_MAP`, the `datasets` and `trainers` registries). A file of
+  ours that only keeps a published registry name alive is a one-line alias. Upstream code stays
+  untouched.
 - `o-voxel/` is not touched (D14).
 - A doc that names a removed file is fixed in the same step.
 - Each step updates TRELLIS2's own docs it affects (`CLAUDE.md`, `README.md`, `data_toolkit/README.md`)
@@ -237,47 +238,44 @@ Carried over from TEXGen (say if one does not apply here):
 - D7 Work happens on branch `trellis2-emission-refactor`; the parent pointer is bumped once, at the merge.
 - D9 Upstream code we do not use stays untouched, files and blocks alike (upstream's configs, among them
   `slat_flow_imgshape2tex_dit_1_3B_512_bf16.yaml`, the DiT's finetune source; upstream's
-  `data_toolkit/` scripts; models, pipelines, samplers). Exception: D12.
+  `data_toolkit/` scripts; models, pipelines, samplers, the demo files `app*.py`, `example*.py`, `assets/` (D12).
 - D10 (open, before publishing) Internal scripts in the published code: `script/internal/` holds our
   Slurm accounts and paths. Publish as is, publish a snapshot without it, or move it to the parent
   repo? Recommended: a published snapshot without it.
 
-New for TRELLIS2, open until Dongchen answers (each has a recommendation):
+New for TRELLIS2 (Dongchen's answers of 2026-10-10):
 
-- [ ] D4 The directory at the merge: keep `TRELLIS2/` or rename it (TEXGen becomes `TEXGen-Emission/`)?
-  A rename moves `.gitmodules`, the gitlink, the o_voxel symlink target, the Solar sbatch paths
-  (Keep stable 1) and every parent reference; registry names stay either way. Recommended: rename to
-  `TRELLIS2-Emission/`, matching TEXGen.
-- [ ] D8 Cut-over (before step 18): after the merge, do the cluster checkouts and `hedge.sh` follow
-  the merged branch, or stay on `pre-refactor`? The jupiter tars stay frozen either way.
-- [ ] D11 Where the result lands: merge into `lightgen` on the lab repo `3dlg-hcvc/TRELLIS.2-lightning`
-  (the branch of record: the parent gitlink, every launcher and checkout pull it), or a new branch
+- [x] D4 At the merge the directory becomes `TRELLIS.2-Emission/`, the paper's name (as TEXGen became
+  `TEXGen-Emission/`). The rename moves `.gitmodules`, the gitlink, the o_voxel symlink target, the
+  Solar sbatch paths (Keep stable 1) and every parent reference; the package stays `trellis2` and the
+  registry names stay.
+- [x] D8 After the merge the cluster checkouts and `hedge.sh` move to the new code (step 18). The
+  jupiter tars stay frozen.
+- [ ] D11 (open) Where the result lands: merge into `lightgen`, the branch of the submodule's repo
+  `3dlg-hcvc/TRELLIS.2-lightning` that holds all our emission work (the parent gitlink points at its
+  head, every launcher and checkout pulls it; its upstream is the same repo's `main`), or a new branch
   with `lightgen` frozen at `pre-refactor`? Recommended: merge into `lightgen` when no job runs from
-  any checkout; tag `pre-refactor` and the frozen tars keep the old code.
-- [ ] D12 Upstream's demo material (`app.py`, `app_texturing.py`, `example.py`, `example_texturing.py`,
-  `assets/{app,example_image,example_texturing}/`, `assets/teaser.webp`): delete as TEXGen's step 4 did,
-  or keep per D9? `assets/hdri/` stays either way: upstream's `structured_latent_svpbr.py:116` reads
-  `forest.exr` for its preview lighting. Recommended: delete, as TEXGen did.
-- [ ] D13 Our modules in upstream's layout: the dataset classes move into new files beside upstream's
-  (`trellis2/datasets/sparse_voxel_emission.py` next to `sparse_voxel_pbr.py`,
-  `structured_latent_emission.py` next to `structured_latent_svpbr.py`), and `lightgen_slat.py` becomes
-  aliases; our training hooks stay as edits inside upstream's `train.py`, `basic.py`, `callbacks.py`
-  (TEXGen's rule), not moved out into `utils/train_ext.py` as the September restructure did.
-  Recommended: as written.
-- [ ] D14 `o-voxel/` stays untouched, our two edits included (emissive buffers in
+  any checkout, as TEXGen merged into its `main`; tag `pre-refactor` and the frozen tars keep the old code.
+- [x] D12 Upstream's demo material stays (`app.py`, `app_texturing.py`, `example.py`,
+  `example_texturing.py`, `assets/`): it does no harm (D9).
+- [x] D13 The LightGen part stays separate from upstream's PBR part: our code goes in files of its own
+  beside upstream's, not as edits inside upstream's files. The dataset classes move into
+  `trellis2/datasets/sparse_voxel_emission.py` (beside `sparse_voxel_pbr.py`) and
+  `structured_latent_emission.py` (beside `structured_latent_svpbr.py`), `lightgen_slat.py` becomes
+  aliases (step 8); our hooks in upstream's `train.py`, `basic.py`, `callbacks.py` move out into files
+  of their own (step 12; the September restructure's `utils/train_ext.py` is a reference). Only the
+  registration lines stay in upstream files. Not covered: D14.
+- [x] D14 `o-voxel/` stays untouched, our two edits included (emissive buffers in
   `o_voxel/convert/volumetic_attr.py`, the `emissiveMipmaps` fix in `src/convert/volumetic_attr.cpp`):
   the data-preparation bake imports it and its output is GPU-architecture dependent. Our edits to
   upstream's `data_toolkit/{blender_script/dump_pbr.py,voxelize_pbr.py,encode_pbr_latent.py}` stay too
   (D3): the September restructure reverted them and the Blender recipes then wrote zero emission.
-  Recommended: yes.
-- [ ] D16 The unmerged remote branches `origin/worktree-dreamy-riding-bird` (15 commits: `_v2` VAE
+- [x] D16 The unmerged remote branches `origin/worktree-dreamy-riding-bird` (15 commits: `_v2` VAE
   configs, `recon_emission_voxels.py`, `tests/test_resolve_ckpt_path.py`, the `train.py --ckpt last`
   fixes `3945dc3`, `8b4269e`) and `origin/unified-pipeline-dump-refactor` (2 commits) stay unmerged;
-  the `--ckpt last` fixes are listed under Later. Recommended: as written.
-- [ ] D17 Paper launchers and configs: TEXGen kept only its release launchers and config (each
-  published run dir carries its own `config.yaml` and `command.txt`). Keep only the release ones here
-  too, or also the paper's four launchers and two configs? Recommended: release only, as TEXGen; the
-  paper runs' `config.yaml` on jupiter (and `config.workstation.yaml` locally) are the record.
+  the `--ckpt last` fixes are listed under Later.
+- [x] D17 Only the release launchers and configs stay, as in TEXGen; the paper runs' `config.yaml` on
+  jupiter (and `config.workstation.yaml` locally) are their record.
 
 ## Done
 
@@ -352,7 +350,7 @@ Parent docs that cite a deleted file go to step 17's list (`docs/baselines/trell
 
 **Result:**
 
-### 4. Vendored and upstream demo material (per D12)
+### 4. Vendored Pillow (`blender_packages/`)
 
 - [ ] `blender_packages/` (133 files, 15.2 MB: Pillow 12.1.1 vendored for Blender). Its users are the
   Blender 74k prep (deleted in steps 2 and 5) and upstream's `data_toolkit/dump_pbr.py:45`, which runs
@@ -360,15 +358,12 @@ Parent docs that cite a deleted file go to step 17's list (`docs/baselines/trell
   imports Pillow (`:12`). Neither run uses this path (their voxels come from
   `../data_processing/data_preparation/`), but check that the script still finds a Pillow inside
   Blender without the directory; if not, keep the directory or ask. The script stays unchanged (D14).
-- [ ] Per D12: `app.py`, `app_texturing.py`, `example.py`, `example_texturing.py`,
-  `assets/{app,example_image,example_texturing}/`, `assets/teaser.webp` (among them a 4.8 MB `.ply`);
-  `assets/hdri/` stays.
 
 **Instructions:**
 
 **Result:**
 
-### 5. Launchers (per D17)
+### 5. Launchers
 
 64 files today (63 scripts and one requirements file): alliance 10, fir 25, star2 25, vulcan 4.
 
@@ -376,11 +371,10 @@ Parent docs that cite a deleted file go to step 17's list (`docs/baselines/trell
   the stage wrappers `script/alliance/{emission_vae_pbr2emission_lightgenbench_v1,encode_emission_pbr2emission_lightgenbench_v1,emission_dit_pbr2emission_lightgenbench_v1}.sh`,
   `script/alliance/{build_env.sh,requirements-fir-2026-09-07.txt,smoke_gpu.sh}`, and
   `script/star2/backup_run.sh` (Keep stable 14).
-- [ ] Kept only if D17 keeps the paper's: `script/fir/emission_vae_pbr2emission_74k_v3_agentic.sh`,
+- [ ] Deleted: the rest, among them the paper's four (D17: `script/fir/emission_vae_pbr2emission_74k_v3_agentic.sh`,
   `script/fir/encode_emission_pbr2emission_74k_v3_agentic.sh`,
   `script/star2/emission_dit_pbr2emission_74k_v3_agentic_venus19.sh`,
-  `script/star2/dit_agentic_snapshot_last_venus19.sbatch`.
-- [ ] Deleted: the rest, among them `script/alliance/emission_dit_74k.sh`, all of `script/vulcan/`,
+  `script/star2/dit_agentic_snapshot_last_venus19.sbatch`), `script/alliance/emission_dit_74k.sh`, all of `script/vulcan/`,
   the standby launchers (`*_v3_agentic_venus05.sh`, `script/fir/emission_dit_pbr2emission_74k_v3_agentic.sh`),
   the albedo→emission, two-stream, `_v2`, `_v3`, `nonzero`, 1k, 10-sample and Blender-prep launchers.
 
@@ -399,11 +393,10 @@ it changes the paths that cluster checkouts, `../AGENTS.md:153` (`backup_run.sh`
 
 **Result:**
 
-### 6. Configs (per D17)
+### 6. Configs
 
-- [ ] Kept: upstream's 9 (D9), the release pair `configs/{scvae/emission_vae,gen/emission_dit}_pbr2emission_lightgenbench_v1.yaml`,
-  and the paper pair `*_pbr2emission_74k_v3_agentic.yaml` only if D17 keeps it.
-- [ ] Deleted: every other `emission_*` config (`emission_pbr_vae_*`, `emission_vae_74k_{fir,vulcan}`,
+- [ ] Kept: upstream's 9 (D9) and the release pair `configs/{scvae/emission_vae,gen/emission_dit}_pbr2emission_lightgenbench_v1.yaml`.
+- [ ] Deleted: every other `emission_*` config (the paper pair `*_pbr2emission_74k_v3_agentic.yaml`, D17; `emission_pbr_vae_*`, `emission_vae_74k_{fir,vulcan}`,
   `emission_vae_pbr2emission_74k_v3{,_nonzero_nocopy}`, `emission_dit_{74k,1k_probe,twostream_74k}`,
   `emission_dit_{albedo2emission,pbr2emission}_74k_*`, the 10-sample pairs). The training check
   brings its own config (step 7). `vis/vis_utils_test.py` already skips the tests that need a
@@ -465,7 +458,7 @@ data and run outputs outside the repo.
 
 **Result:**
 
-### 8. Our modules in upstream's layout (per D13)
+### 8. Our dataset and trainer files beside upstream's (D13)
 
 | ours | upstream beside it |
 |---|---|
@@ -526,7 +519,7 @@ stable 12). Checks: the encode check, the VAE table; the bake's output
 
 **Result:**
 
-### 12. Our hooks in upstream's `train.py`, `basic.py`, `callbacks.py`
+### 12. Our hooks out of upstream's `train.py`, `basic.py`, `callbacks.py` (D13)
 
 Ours in upstream files (`git diff main`): `train.py` +91/−10 (the `TRAINER_MAP` entries, the wandb
 run-id restore through `wandb_run_id.txt`, `build_checkpoint_callback` with top-k by `val/loss` and
@@ -536,8 +529,10 @@ validation summary, the per-step `[train]` trace, the `visualize_sample` guard),
 +77 (`CheckpointTimingCallback`, Keep stable 13), and the small ones: `utils/data_utils.py`
 (`ResumableSampler.set_epoch`, an upstream bug), `trainers/data.py` (empty validation list),
 `flow_matching/mixins/image_conditioned.py` (DINOv3 layer path), the registries in
-`datasets/__init__.py` and `trainers/__init__.py`. Decide what stays; any change here changes how
-training runs behave. Training check for each change. If a hook moves into a callback, `train/lr`
+`datasets/__init__.py` and `trainers/__init__.py`. Per D13 each moves into a file of our own (a
+subclass or a callback that upstream's code calls through its registry), so `git diff main` on these
+files shows only the registration lines; an edit that cannot move without changing behavior is
+listed for Dongchen. Training check for each move. If a hook moves into a callback, `train/lr`
 must still be read before the scheduler step (`basic.py:534` does it inside `training_step`; the
 September restructure's callback read it late until `b960f52`).
 
@@ -611,13 +606,13 @@ One doc of record, keeping upstream's attribution and citation (`README.md`).
 
 **Result:**
 
-### 17. Merge (per D11) and the directory name (per D4) (needs Dongchen's go)
+### 17. Merge (per D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
 
 - [ ] The full gate, the VAE table, the encode check and the training check on the branch head,
   against the `pre-refactor` baselines; the tests.
 - [ ] No job running from any `lightgen` checkout (Keep stable 15).
 - [ ] The merge and the push (with the go).
-- [ ] In the parent, one commit: the pointer bump and, per D4, the rename (`.gitmodules`, the
+- [ ] In the parent, one commit: the pointer bump and the rename `TRELLIS2/` → `TRELLIS.2-Emission/` (`.gitmodules`, the
   gitlink, the o_voxel symlink target, the Solar sbatch paths of Keep stable 1, every parent
   reference: search again).
 - [ ] Parent docs: `AGENTS.md:31,45-47,54,65,152-163` (`:45-47`: the ~20 files with the old path are
@@ -635,7 +630,7 @@ One doc of record, keeping upstream's attribution and citation (`README.md`).
 
 **Result:**
 
-### 18. Cut-over (optional, per D8)
+### 18. Cut-over to the new code (D8)
 
 - [ ] Move the cluster checkouts to the merged code (star2, fir, Alliance: nibi, rorqual, killarney,
   tamia, trillium) and rebuild the Alliance `env/` if step 14 changed the requirements; repoint
