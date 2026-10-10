@@ -8,7 +8,7 @@ LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/REFACTOR_TODO
 
 ## Progress
 
-- [ ] 1. Housekeeping (tag and worktree done)
+- [x] 1. Housekeeping
 - [ ] 2. Dead root files and one-off scripts
 - [ ] 3. `archive/`, patches, stale reports and plans, stale ignore rules
 - [ ] 4. Vendored and upstream demo material (per D12)
@@ -32,9 +32,10 @@ LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/REFACTOR_TODO
 
 - One step = one commit with one purpose. Removals and moves never share a commit with a behavior
   change. Cleanups change no behavior; fixes go under "Later", one step each, only if wanted.
-- Steps run automatically, in order: when a step's checks pass, commit it, fill in its **Result**,
-  report it in one line, start the next. Dongchen can add **Instructions** to any step at any time.
-- Stop and ask only for: (1) an open decision the step needs; (2) a check that fails, unless the
+- Dongchen gives the go for each step or range of steps (since 2026-10-07; no automatic run). A step
+  whose checks pass is committed and reported; its **Result** is at most three lines (what changed,
+  commits, verdict), run details go to commit messages. Dongchen can add **Instructions** to any step.
+- Within a step, stop and ask only for: (1) an open decision the step needs; (2) a check that fails, unless the
   cause is an obvious slip in the step; (3) something the plan does not cover (a needed fix, a
   behavior change, a file outside the step's list); (4) an action outside the worktree and our
   compute: a push (every cluster checkout pulls `lightgen`, even inside running jobs; Keep stable
@@ -91,12 +92,22 @@ The inference gate: the paper's command, which `../evaluation/newdata_eval/sweep
 last-step0050000.ckpt 0` builds, with its own `--out_dir` (`job_dit.sh` itself writes into the
 published directory): `data_toolkit/predict_emission_voxels_twostream.py`, seed 0, `--guidance 3.0
 --steps 50`, inputs `../evaluation/newdata_eval/out/data_root`, the `trellis2` env, the 4090 lock
-`/local-scratch/localhome/dya78/.locks/gpu0-rtx4090.lock`. The September restructure's harness does
-this (`outputs/restructure_gate/{infer,compare,vae_compare}.sh` in the main checkout, ignored);
-step 1 moves it into the repo, step 7 adds the numeric comparison.
+`/local-scratch/localhome/dya78/.locks/gpu0-rtx4090.lock`. The scripts are in `script/internal/gate/`
+(step 1, from the September restructure's `outputs/restructure_gate/`); check outputs go to
+`C=/local-scratch/localhome/dya78/lightgen_eval_local/trellis2_refactor_checks/`:
 
-- Routine steps: a 20-shape subset (fixed in step 7; about 3.4 s per shape on the 4090 plus model
-  load). Full: the 204 shapes of `../evaluation/newdata_eval/eval_sets/test_agentic_clean.txt`
+```bash
+G=script/internal/gate
+bash $G/tree.sh <commit> C/trees/<name>            # git archive + the main checkout's outputs/, data/
+bash $G/infer.sh C/trees/<name> C/gate/<run> [$G/subset20.txt]    # prints GATE_DONE <n>
+bash $G/compare.sh C/gate/pre-refactor_run1 C/gate/<run> [$G/subset20.txt]
+bash $G/vae_table.sh C/trees/<name> C/vae/<run>; bash $G/vae_compare.sh <a.csv> <b.csv>
+```
+
+Step 7 adds the numeric comparison.
+
+- Routine steps: `script/internal/gate/subset20.txt` (TEXGen's 20 gate shapes, all among the 204;
+  about 3.4 s per shape on a free 4090 plus model load). Full: the 204 shapes of `../evaluation/newdata_eval/eval_sets/test_agentic_clean.txt`
   (about 12 min), for steps that touch the dataset, model loading, the predictor or the trainers,
   and before the merge.
 - Compare every key of every `pred_voxels/<sha>.npz` (`coords`, `pred`, `gt_recon`, `gt_emission`).
@@ -107,6 +118,9 @@ step 1 moves it into the repo, step 7 adds the numeric comparison.
   (`vae_compare.sh`). The committed `reports/vae_recon_test204/per_shape.csv` holds six arms (1,224
   rows); filtered to the two gate arms it matched in September.
 - The release checkpoints get their own gate on a release test subset (step 7).
+- Tests: `data_toolkit/test_{eval_vae_recon,emission_vae_resume,checkpoint_cadence}.py` and
+  `vis/vis_utils_test.py` read 25 passed, 2 failed on `pre-refactor` (the two need a 10-sample VAE
+  checkpoint this host lacks); every step keeps that.
 
 ## Keep stable (other code depends on these)
 
@@ -277,15 +291,17 @@ New for TRELLIS2, open until Dongchen answers (each has a recommendation):
 
 - [x] Tag `pre-refactor` and the worktree (Done 1).
 - [x] This plan on the branch (`REFACTOR_TODO.md`).
-- [ ] Move the gate harness from the main checkout's ignored `outputs/restructure_gate/` into
-  `script/internal/gate/` (`infer.sh`, `compare.sh`, `vae_compare.sh`, `vae_table.sh`): absolute-path
-  arguments, the tree under test as an argument, the shapes file optional.
-- [ ] `docs/status/refactor.md` in the parent has no TRELLIS2 entry, not even for the September
-  restructure: add one at the merge (step 17's list).
+- [x] Move the gate harness from the main checkout's ignored `outputs/restructure_gate/` into
+  `script/internal/gate/` (`tree.sh`, `infer.sh`, `compare.sh`, `vae_table.sh`, `vae_compare.sh`,
+  `subset20.txt`): absolute-path arguments, the tree under test as an argument, the shapes file optional.
+- [x] `docs/status/refactor.md` in the parent has no TRELLIS2 entry, not even for the September
+  restructure: on step 17's list.
 
 **Instructions:**
 
-**Result:**
+**Result:** Gate scripts in `script/internal/gate/` (Codex-reviewed; a skipped shape, a failed VAE row
+or an unlisted directory now fails). Baseline `C/gate/pre-refactor_run1`: 204/204 npz, byte-identical
+to September's `before/`, so the 4090 noise is zero. Tests: 25 passed, 2 failed (need a checkpoint).
 
 ### 2. Dead root files and one-off scripts
 
@@ -406,7 +422,7 @@ data and run outputs outside the repo.
   max absolute difference; the evaluator's IoU, MAE and PSNR from `../evaluation/pointsampled/`
   reading the voxels (`--voxel_pred_root`); NaN-safe (NaN on one side fails); verdict EMPTY on an
   empty shapes file. TEXGen's `scripts/internal/gate/compare_numeric.py` is the pattern.
-- [ ] The 20-shape subset of the 204, fixed in a file.
+- [x] The 20-shape subset of the 204, fixed in a file (`subset20.txt`, step 1).
 - [ ] Gate noise: two runs on unchanged code per GPU type (the workstation 4090 read zero in
   September; re-measure on `pre-refactor`): sp4090 (runtime
   `/local-scratch/localhome/dya78/t2lgb_sp4090`, env pack and compiled o_voxel), Solar L40S (the
