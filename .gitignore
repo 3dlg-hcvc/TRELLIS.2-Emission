@@ -1,14 +1,11 @@
 # Project data (voxels, latents, parquet, splits) — large, lives on local disk
-data/
+/data/
 
 # Training run outputs (checkpoints, wandb, summaries) — large
 outputs/
 # wandb offline runs staged on a node for `wandb sync` (63 MB+ each) — sync, never commit
 wandb/
 wandb_sync_staging*/
-
-# Archived / deprecated training run artifacts
-.deprecated/
 
 # Local agent / IDE settings
 .claude/
@@ -22,8 +19,6 @@ vis/*.png
 vis/*.csv
 visualizations/
 log/
-emission_dit_*_pred.png
-emission_dit_*_test.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

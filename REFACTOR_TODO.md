@@ -10,7 +10,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 
 - [x] 1. Housekeeping
 - [x] 2. Dead root files and one-off scripts
-- [ ] 3. `archive/`, patches, stale reports and plans, stale ignore rules
+- [x] 3. `archive/`, patches, stale reports and plans, stale ignore rules
 - [ ] 4. Vendored Pillow (`blender_packages/`)
 - [ ] 5. Launchers
 - [ ] 5b. Move the kept cluster scripts into `script/internal/`
@@ -339,18 +339,20 @@ Parent docs that cite a deleted file go to step 17's list (`docs/baselines/trell
 
 ### 3. `archive/`, patches, stale reports and plans, stale ignore rules
 
-- [ ] `archive/` (30 files: configs, cvae tests, `lightgen_uv.py`, old viewers), `.patches/` (2),
+- [x] `archive/` (30 files: configs, cvae tests, `lightgen_uv.py`, old viewers), `.patches/` (2),
   `docs/superpowers/` (9 April–June plans and specs), `reports/emission_vae_pbr2emission_74k_v3_status.md`,
   `reports/finetune_pbr_10sample_as1k_2gpu_v15_status.md`. Kept: `reports/vae_recon_test204/` and
   `reports/vae_pretrained_vs_finetuned.md` (`../docs/evaluation.md:445-447`).
-- [ ] `.gitignore`: `.deprecated/` (`:11`, no such directory); `data/` (`:2`) is unanchored and also
+- [x] `.gitignore`: `.deprecated/` (`:11`, no such directory); `data/` (`:2`) is unanchored and also
   matches 12 tracked eigen files under `o-voxel/third_party/eigen/bench/btl/data/` (make it `/data/`
   and check nothing new shows as untracked); the PNG rule (`:26`) after step 2.
 - Not here: the 370 MB of `debug_outputs/` blobs in history (out of scope).
 
 **Instructions:**
 
-**Result:**
+**Result:** 43 files removed (`archive/` 30, `.patches/` 2, `docs/superpowers/` 9, 2 status reports);
+`.gitignore`: `/data/` anchored, `.deprecated/` and the test-PNG rules dropped; `CLAUDE.md` fixed. Gate
+subset20 20/0/0 byte-identical; tests 25 passed, 2 failed (unchanged).
 
 ### 4. Vendored Pillow (`blender_packages/`)
 
@@ -471,7 +473,8 @@ data and run outputs outside the repo.
 - [ ] 8a. The dataset file split into the two new files per D13; `lightgen_slat.py` keeps the
   registry names as aliases. Full gate, VAE table, encode check, training check.
 - [ ] 8a also: the module docstring of `lightgen_slat.py:14` names `encode_emission_latent.py`
-  (deleted in step 2).
+  (deleted in step 2); the comment at `trellis2/datasets/__init__.py:19` names
+  `archive/datasets/lightgen_uv.py` (deleted in step 3).
 - [ ] 8b. Our trainers used by neither run: `emission_pbr_finetune.py` (`EmissionPbrFinetuneTrainer`,
   albedo→emission), `emission_pbr_conditional.py` and `utils/model_surgery.py` (its configs are archived:
   `archive/configs/scvae/emission_pbr_cvae_*.yaml`), with their `TRAINER_MAP` and registry entries and the `vis_utils.load_vae_from_handle`
@@ -549,7 +552,9 @@ September restructure's callback read it late until `b960f52`).
 ### 13. The viewers in `vis/`
 
 `vis_3d_vae.py` (190 lines), `vis_3d_dit.py` (321), `vis_utils.py` (753), `vis_utils_test.py` (181):
-hardcoded paths, output-only code; Keep stable 8. Check: both viewers on two shapes before and after,
+hardcoded paths, output-only code; Keep stable 8. Comments naming files step 3 deleted:
+`vis_3d_dit.py:98` (`archive/vis/legacy/`), `vis_3d_vae.py:5` and `vis_utils.py:5` (this repo's
+`docs/superpowers/specs/2026-04-22-vis-3d-consolidation-design.md`). Check: both viewers on two shapes before and after,
 the HTML identical apart from timestamps.
 
 **Instructions:**
@@ -631,7 +636,9 @@ One doc of record, keeping upstream's attribution and citation (`README.md`).
   `extract_74k_tars.sh`, `encode_emission_latent.py`, `test_emission_*`, `vis_emission_vae.py`,
   `viz_uv_*`, `predict_emission_voxels.py`), `docs/status/checkpoints.md:13-14` and
   `docs/baselines/trellis2.md:8` (`bridge_voxel_to_uv.py`), `evaluation/newdata_eval/EXECUTION_LOG.md:74`
-  and the `release_gt_voxels.py` docstring (`predict_emission_voxels.py --gt_only`); the spec
+  and the `release_gt_voxels.py` docstring (`predict_emission_voxels.py --gt_only`); step 3 deleted
+  `archive/` and this repo's `docs/superpowers/`, still named by `.claude/rules/trellis2.md` (`archive/vis/`,
+  the 74k encoding spec); the spec
   `docs/superpowers/specs/2026-09-16-trellis2-restructure-design.md:115` says the parent never
   imports `trellis2` (it does: `build_trellis2_bw.sbatch`).
 - [ ] Outside the repo: the compute-access skill's `hedge.sh:31-32` and `hedged-submission.md:34-35`
