@@ -9,7 +9,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 ## Progress
 
 - [x] 1. Housekeeping
-- [ ] 2. Dead root files and one-off scripts
+- [x] 2. Dead root files and one-off scripts
 - [ ] 3. `archive/`, patches, stale reports and plans, stale ignore rules
 - [ ] 4. Vendored Pillow (`blender_packages/`)
 - [ ] 5. Launchers
@@ -306,9 +306,9 @@ to September's `before/`, so the 4090 noise is zero. Tests: 25 passed, 2 failed 
 Not used by the paper or the release run. The 9 live files that hardcode the old path
 `/…/code/TRELLIS.2-lightning` are all in this list.
 
-- [ ] Root: the 10 PNGs (`emission_dit_*_test.png` and others, about 4.4 MB; `.gitignore:26`
+- [x] Root: the 10 PNGs (`emission_dit_*_test.png` and others, about 4.4 MB; `.gitignore:26`
   matches four of them).
-- [ ] `data_toolkit/`, ours: `ablate_zpbr_v3.py`, `aggregate_{emission,latent}_stats.py`,
+- [x] `data_toolkit/`, ours: `ablate_zpbr_v3.py`, `aggregate_{emission,latent}_stats.py`,
   `analyze_dark_regions.py`, `bake_albedo2emission_v3_init.py`, `bridge_voxel_to_uv.py` and its test,
   `check_74k_progress.py`, `compute_normalization_stats.py`, `diag_{dit_decode,emission_range}.py`,
   `dump_vae_recon_voxels.py`, `encode_10_samples.py`, `encode_emission_latent.py`,
@@ -322,8 +322,8 @@ Not used by the paper or the release run. The 9 live files that hardcode the old
   `test_emission_vae_e2e.py`, `test_pbr_vae.py`, `test_single_emission_sample.py`,
   `vis_emission_vae.py`, `viz_uv_{albedo,alignment,gallery}.py`, `verify_albedo2emission_v3/`,
   `verify_pbr2emission_v3/`, `datasets/lightgen_74k.py`, `blender_script/dump_pbr_nonormalize.py`.
-- [ ] `vis/vis_emission_vae.py`.
-- [ ] Kept in `data_toolkit/` (ours): `bake_pbr2emission_v3_init.py`, `dual_grid_from_glb.py`,
+- [x] `vis/vis_emission_vae.py`.
+- [x] Kept in `data_toolkit/` (ours): `bake_pbr2emission_v3_init.py`, `dual_grid_from_glb.py`,
   `encode_shape_from_dual_grid.py`, `encode_pbr_from_voxels.py`, `encode_emission_twostream_dataset.py`,
   `predict_emission_voxels_twostream.py`, `eval_vae_recon.py`, `build_lightgenbench_index.py`, and the
   tests `test_eval_vae_recon.py`, `test_emission_vae_resume.py`, `test_checkpoint_cadence.py`.
@@ -333,7 +333,9 @@ Parent docs that cite a deleted file go to step 17's list (`docs/baselines/trell
 
 **Instructions:**
 
-**Result:**
+**Result:** 67 files removed (10 root PNGs, 56 `data_toolkit/` one-offs, `vis/vis_emission_vae.py`);
+`CLAUDE.md` lines naming them fixed. Gate subset20 20/0/0 byte-identical; tests 25 passed, 2 failed
+(unchanged).
 
 ### 3. `archive/`, patches, stale reports and plans, stale ignore rules
 
@@ -468,6 +470,8 @@ data and run outputs outside the repo.
 
 - [ ] 8a. The dataset file split into the two new files per D13; `lightgen_slat.py` keeps the
   registry names as aliases. Full gate, VAE table, encode check, training check.
+- [ ] 8a also: the module docstring of `lightgen_slat.py:14` names `encode_emission_latent.py`
+  (deleted in step 2).
 - [ ] 8b. Our trainers used by neither run: `emission_pbr_finetune.py` (`EmissionPbrFinetuneTrainer`,
   albedo→emission), `emission_pbr_conditional.py` and `utils/model_surgery.py` (its configs are archived:
   `archive/configs/scvae/emission_pbr_cvae_*.yaml`), with their `TRAINER_MAP` and registry entries and the `vis_utils.load_vae_from_handle`
@@ -502,6 +506,7 @@ different script step 2 deletes, which the parent's docs still cite.
 
 - [ ] Hardcoded defaults and paths; the `--split_json` default; output-only code. Exact lines after
   step 9.
+- [ ] Comments naming `predict_emission_voxels.py` (deleted in step 2): `:7`, `:10`, `:107`, `:147`.
 
 **Instructions:**
 
@@ -511,8 +516,9 @@ different script step 2 deletes, which the parent's docs still cite.
 
 `bake_pbr2emission_v3_init.py`, `dual_grid_from_glb.py`, `encode_shape_from_dual_grid.py`,
 `encode_pbr_from_voxels.py`, `encode_emission_twostream_dataset.py`, `eval_vae_recon.py`,
-`build_lightgenbench_index.py`: hardcoded paths, dead branches, output-only code. Names stay (Keep
-stable 12). Checks: the encode check, the VAE table; the bake's output
+`build_lightgenbench_index.py`: hardcoded paths, dead branches, output-only code; the docstring and the error message naming
+`encode_emission_pbrfinetune_dataset.py` (deleted in step 2) in `encode_emission_twostream_dataset.py:4,86`.
+Names stay (Keep stable 12). Checks: the encode check, the VAE table; the bake's output
 `data/ckpt_init/pbr2emission_v3/{encoder,decoder}.safetensors` compared byte for byte.
 
 **Instructions:**
@@ -620,11 +626,17 @@ One doc of record, keeping upstream's attribution and citation (`README.md`).
   `.claude/rules/trellis2.md` (paths, scripts, trainer names; already stale: `:130` names `_v3` as
   the production config, `:140-148` lists only the `_v2` DiTs), `docs/baselines/trellis2.md:3-8` (`:8`
   already stale: scoring reads the voxels directly), `docs/status/checkpoints.md:13-17`,
-  `docs/evaluation.md:344`, `docs/status/refactor.md` (the TRELLIS2 entry); the spec
+  `docs/evaluation.md:344`, `docs/status/refactor.md` (the TRELLIS2 entry); files step 2 deleted are
+  still named by `.claude/rules/trellis2.md` (`prep_10sample_as1k.py`, `prep_74k_*.py`,
+  `extract_74k_tars.sh`, `encode_emission_latent.py`, `test_emission_*`, `vis_emission_vae.py`,
+  `viz_uv_*`, `predict_emission_voxels.py`), `docs/status/checkpoints.md:13-14` and
+  `docs/baselines/trellis2.md:8` (`bridge_voxel_to_uv.py`), `evaluation/newdata_eval/EXECUTION_LOG.md:74`
+  and the `release_gt_voxels.py` docstring (`predict_emission_voxels.py --gt_only`); the spec
   `docs/superpowers/specs/2026-09-16-trellis2-restructure-design.md:115` says the parent never
   imports `trellis2` (it does: `build_trellis2_bw.sbatch`).
 - [ ] Outside the repo: the compute-access skill's `hedge.sh:31-32` and `hedged-submission.md:34-35`
-  if step 5b moved the launchers.
+  if step 5b moved the launchers; `SegviGen-emissive/emissive/infer/dump_pred_voxels_eval5.py:3` names
+  `bridge_voxel_to_uv.py` (another submodule, a docstring).
 
 **Instructions:**
 

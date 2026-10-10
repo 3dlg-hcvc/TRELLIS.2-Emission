@@ -82,7 +82,7 @@ SBATCH wrappers live under `script/star2/<task>.sh` — one script per experimen
 - Pipe exit codes: zsh uses 1-indexed lowercase `${pipestatus[1]}` — **not** bash's `${PIPESTATUS[0]}` — when capturing `train.py`'s exit through a `tee` pipe. End the body with `exit \$TRAIN_EXIT` so Slurm records training failures as failures.
 - Tee logs into `log/${TS}-${NAME}.log` per the Run Logs convention (the `mkdir -p log` + `TS=$(date +%Y%m%d-%H%M%S)` block lives inside the SBATCH body so the timestamp is the actual run start on the node).
 - **Sync the launcher's commit to the cluster.** Never edit source files on the cluster; edit locally, `git push origin <branch>`, and put `git pull origin <branch>` in the sbatch body right after `cd /localscratch/dya78/TRELLIS.2-lightning`. This makes "what code ran" unambiguous and lets multiple collaborators share the cluster clone without racing edits.
-- **Regenerate gitignored artifacts in the body.** Files under `data/` (e.g. `data_splits_*.json` produced by `data_toolkit/prep_*.py`) are gitignored and won't arrive via `git pull` — regenerate them in the body so a fresh cluster clone works end-to-end.
+- **Regenerate gitignored artifacts in the body.** Files under `data/` (e.g. `data_splits_*.json`) are gitignored and won't arrive via `git pull` — regenerate them in the body so a fresh cluster clone works end-to-end.
 
 Naming convention: `script/star2/<task>.sh` ↔ job name / output dir `<task>[_<TAG>]` ↔ status report `reports/<task>_status.md` (see existing `reports/*.md` for templates). When adding a new launch script, copy the closest existing one under `script/star2/` rather than writing from scratch.
 
@@ -104,7 +104,6 @@ Once attached (inside the compute-node shell):
 ```bash
 cd /localscratch/dya78/TRELLIS.2-lightning && conda activate trellis2
 git pull --ff-only origin <branch>
-TRAIN_SIZE=<N> python data_toolkit/prep_10sample_as1k.py   # regen gitignored splits
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 mkdir -p log; TS=$(date +%Y%m%d-%H%M%S)
 python train.py --config configs/scvae/<cfg>.yaml --output_dir outputs/<run> \
@@ -134,16 +133,15 @@ Deployed at `/scratch/dya78/TRELLIS.2-lightning/` (`lightgen` branch), venv at `
 ## Data Paths
 
 - **Data root:** `data/lightgen_test/` — repo-relative path that works on every host. The 10-sample dataset (parquet, emission voxels, PBR voxels, latents, splits) lives here as real files. The `data/` directory is gitignored. To deploy on a new host, copy/rsync `data/lightgen_test/` along with the repo (e.g. `rsync -av data/ host:/path/to/repo/data/`).
-- **74k subset (jupyter):** `/3dlg-jupiter-project/lightgen/dataset/lightgen_74k/` (or `/cs/3dlg-jupiter-project/...` from the jupyter side). Holds `metadata.csv`, `df_SomgProc_final.parquet`, `data_splits_emissive_74k_pinned.json`, plus 8 `voxels/part<N>_voxels.tar` and 8 `latents/part<N>_latents.tar` produced by the prep pipeline (`script/star2/prep_74k_chain.sh`). Extract for training via `bash data_toolkit/extract_74k_tars.sh <jupyter_base> <local_dst>` — the resulting tree mirrors `data/lightgen_1k/` so existing dataset configs port over with one path swap. See `docs/superpowers/specs/2026-05-07-lightgen-74k-encoding-design.md` for the full pipeline design.
+- **74k subset (jupyter):** `/3dlg-jupiter-project/lightgen/dataset/lightgen_74k/` (or `/cs/3dlg-jupiter-project/...` from the jupyter side). Holds `metadata.csv`, `df_SomgProc_final.parquet`, `data_splits_emissive_74k_pinned.json`, plus 8 `voxels/part<N>_voxels.tar` and 8 `latents/part<N>_latents.tar` produced by the prep pipeline (`script/star2/prep_74k_chain.sh`). See `docs/superpowers/specs/2026-05-07-lightgen-74k-encoding-design.md` for the full pipeline design.
   - **Current encoding coverage** (as of 2026-05-08): both `pbr_latents/tex_enc_next_dc_f16c32_fp16_256/` and `shape_latents/shape_enc_next_dc_f16c32_fp16_256/` are present per shard. Per-shard counts vary slightly because of per-sample Blender failures on bad GLBs (~1 % loss) plus, for shard 4, **348 dual-grid samples were skipped** because their meshes exceeded a 500 GB single-process memory budget (pathological vertex count). Net coverage ≈ **99 %** of the 73,472 sha256s once the rank-2 backfill finishes (rank 2's first attempt landed only 2,328 samples due to a partial-state artifact during early debug iteration; the backfill is in flight on cs-venus-16).
   - **Data-prep operational notes** (lessons from the first 74k run, baked into `script/star2/prep_74k_*.sh`):
     - **Stage A (Blender dump) is pure CPU** — never request `--gres=gpu` for the AB job; that wastes a GPU for hours. Stage C (latent encoders) does need `--gres=gpu:1`.
     - **`/localscratch` is shared across users on each compute node**; cs-venus-{15,16}'s 5.8 TB volume hovers around 100 % full from other users. Per-rank `pbr_dumps/` peaks at ~270 GB; running 4 ranks concurrently per node blows the disk. Cap at 1–2 ranks per node, or use the inline pickle-cleanup pattern (delete each `.pickle` after voxelize+dual_grid consume it; the one-off `r2_resume.sh` that demonstrated this has been removed).
-    - **Sparse-voxel dual_grid spikes RAM unpredictably**; some meshes need >500 GB single-process RAM. Default `--workers=16` for `prep_74k_dual_grid.py` OOMs on a 64 GB allocation. Either ask for ≥256 GB AND drop workers to 4, OR accept a few-percent loss on pathological samples.
-    - **Pillow stale-`.so` corruption**: a fresh git clone of the repo gets PIL `.py` files but not the `.so` C extensions (gitignored). The `prep_74k_install_blender.sh` script `pip install --target=blender_packages --upgrade Pillow` to materialize matching `.so`. If the hashed `libtiff` in `_imaging.so`'s NEEDED list doesn't match what's in `pillow.libs/`, Blender's PIL import crashes — Blender exits 0:125-fast and `prep_74k_dump.py` reports `fail=N` at suspiciously high rates (~13/s). The install script auto-detects this via `ldd` and re-installs.
+    - **Sparse-voxel dual_grid spikes RAM unpredictably**; some meshes need >500 GB single-process RAM. Ask for ≥256 GB with few workers, or accept a few-percent loss on pathological samples.
     - **Conda env `trellis2` is per-node**: only cs-venus-{07,08,09,15,16} have `/localscratch/dya78/miniconda3/envs/trellis2/`. cs-venus-{02,05,13,14,17} lack it and any AB/C SBATCH that lands there fails in <1 s.
     - **`pyarrow` is missing from the `trellis2` env** by default; `encode_shape_from_dual_grid.py` needs it to read the parquet. The C launcher idempotently `pip install pyarrow` before invoking encoders.
-- **Visualization scripts:** `vis/` — unified 3D interactive: `vis/vis_3d_vae.py` (VAE reconstruction) and `vis/vis_3d_dit.py` (DiT → VAE decode). Both share helpers in `vis/vis_utils.py` and support `--experiment name=path` (repeatable) for side-by-side method comparison. Legacy per-case / one-off scripts live under `archive/vis/`. UV eval viewers: `data_toolkit/viz_uv_{gallery,alignment,albedo}.py`.
+- **Visualization scripts:** `vis/` — unified 3D interactive: `vis/vis_3d_vae.py` (VAE reconstruction) and `vis/vis_3d_dit.py` (DiT → VAE decode). Both share helpers in `vis/vis_utils.py` and support `--experiment name=path` (repeatable) for side-by-side method comparison. Legacy per-case / one-off scripts live under `archive/vis/`.
 
   **Known issue — GLB↔voxel scale misalignment:** The GLB panel and voxel panels don't bbox-align perfectly. Root cause: Blender's GLTF importer (used by `data_toolkit/blender_script/dump_pbr.py` to produce the pickle the voxelizer consumes) and the browser's GLTFLoader decode the same `.glb` file into geometrically different vertex sets (different vertex counts, different per-axis extents) — Blender applies import-time axis conversion, modifiers, and other transforms not exposed as toggles. The voxels come from Blender's view of the mesh; the browser renders trimesh/GLTFLoader's view. No single transform can reconcile them. Sample 0 happens to match closely (~0.003 on normalized axes); samples with more complex hierarchy show per-axis extent differences of 10–30% of the unit cube. Fix path (not yet done): during data prep, export a GLB from Blender at dump time (via `bpy.ops.export_scene.gltf`) as a sidecar file alongside each `.vxz`, then the viewer loads that "roundtrip" GLB instead of the 1K original — the two share Blender's exact vertex set.
 - **Visualization output:** `visualizations/` — generated HTML/PNG files go here.
@@ -159,16 +157,16 @@ python data_toolkit/dump_mesh.py <SUBSET> --root <ROOT>        # extract meshes
 python data_toolkit/dump_pbr.py <SUBSET> --root <ROOT>         # extract PBR + emissive textures
 python data_toolkit/voxelize_pbr.py ...                        # mesh → O-Voxel
 python data_toolkit/encode_pbr_latent.py ...                   # voxel → latent
-python data_toolkit/encode_emission_latent.py ...              # emission voxel → latent (lightgen)
+python data_toolkit/encode_emission_twostream_dataset.py ...  # emission voxel → latent (lightgen)
 ```
 
 ## Testing
 
-No automated test framework. Ad-hoc test/diagnostic scripts live in `data_toolkit/`:
+No test framework beyond a few pytest files (CPU; the two `vis_utils_test.py` checkpoint tests need
+`outputs/emission_vae_10sample_overfit/ckpts/`):
 ```bash
-python data_toolkit/test_emission_dit_10samples.py   # test DiT inference
-python data_toolkit/test_emission_vae_e2e.py         # test VAE encode/decode
-python data_toolkit/vis_emission_vae.py              # visualize VAE reconstructions
+python -m pytest data_toolkit/test_eval_vae_recon.py data_toolkit/test_emission_vae_resume.py \
+  data_toolkit/test_checkpoint_cadence.py vis/vis_utils_test.py
 python vis/vis_3d_vae.py                             # 3D interactive HTML visualization
 ```
 
@@ -264,18 +262,9 @@ channel-concat mode in the same change (`--pbr_cond channel`, PR QhelDIV/SegviGe
 
 All trainers use `drop_last=True` on the train DataLoader. With `len(dataset) = 10` and any `num_gpus * batch_size_per_gpu > 10`, every rank gets ≤ batch_size samples and produces zero training batches — Lightning prints `Total length of DataLoader across ranks is zero` and `Trainer.fit stopped: No training batches.`
 
-Fix: oversample the train indices via `data_toolkit/prep_10sample_as1k.py`, which writes `data/lightgen_test/data_splits_10sample_as1k.json` with a repeated train list (`TRAIN_SIZE` env var, default 120) and the 10-row val list. In the dataset args:
-
-```yaml
-dataset:
-  args:
-    split: train
-    split_json: data/lightgen_test/data_splits_10sample_as1k.json
-```
+Fix: oversample the train indices (repeat them in the split JSON's train list) to a length that is an exact multiple of `num_gpus * batch_size_per_gpu`, so `drop_last=True` drops nothing.
 
 For validation on the same 10 samples, use **only** `val_split_name: val` in the trainer args (and **not** `val_split_file`). Background: `TrellisDataModule` injects `val_split_file` as the kwarg `split_file=...`, but `LightGenSLatEmission.__init__` accepts `split_json` / `split_indices` only — passing `val_split_file` will TypeError. With just `val_split_name: val`, the data module clones the train args (which already include `split_json`) and overrides `split` to `"val"`, which works.
-
-`TRAIN_SIZE` **must** be an exact multiple of `num_gpus * batch_size_per_gpu` so `drop_last=True` drops **zero** rows and every epoch visits every position. A multiple that is merely "clean for step counts" but leaves a tail (e.g. 120 with global batch 64 → 56 dropped, ~47%) is a bug — with rotating shuffle (see `ResumableSampler.set_epoch`, fixed in e6df30c) the dropped rows differ each epoch, but you're still leaving half the intended oversample on the floor per epoch. For 10 unique samples × 4 GPUs × BS=16 (global 64), use `TRAIN_SIZE=640` (each sample visited 64× / epoch, zero drop). Regenerate in the sbatch body on each submission so it's always consistent with the current `num_gpus × batch_size_per_gpu`.
 
 ### Load balancing across DDP ranks (BalancedResumableSampler)
 

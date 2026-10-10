@@ -1,7 +1,0 @@
-{
-  "albedo->emission reference (full pretrained, 6ch)": 0.004878106061369181,
-  "skip": 1.7742365598678589,
-  "patched": 0.004878155421465635,
-  "patched_nofold": 0.006634657736867666,
-  "patched_pbrcols": 0.6754030585289001
-}
