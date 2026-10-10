@@ -25,7 +25,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [ ] 14. Environment files
 - [ ] 15. Release layer: generic entry points for LightgenBench users
 - [ ] 16. Docs
-- [ ] 17. Merge (per D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
+- [ ] 17. Merge into `lightgen` (D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
 - [ ] 18. Cut-over to the new code (D8)
 
 ## How we work
@@ -243,7 +243,7 @@ Carried over from TEXGen (say if one does not apply here):
   Slurm accounts and paths. Publish as is, publish a snapshot without it, or move it to the parent
   repo? Recommended: a published snapshot without it.
 
-New for TRELLIS2 (Dongchen's answers of 2026-10-10):
+New for TRELLIS2 (Dongchen's answers of 2026-10-10; all answered):
 
 - [x] D4 At the merge the directory becomes `TRELLIS.2-Emission/`, the paper's name (as TEXGen became
   `TEXGen-Emission/`). The rename moves `.gitmodules`, the gitlink, the o_voxel symlink target, the
@@ -251,11 +251,11 @@ New for TRELLIS2 (Dongchen's answers of 2026-10-10):
   registry names stay.
 - [x] D8 After the merge the cluster checkouts and `hedge.sh` move to the new code (step 18). The
   jupiter tars stay frozen.
-- [ ] D11 (open) Where the result lands: merge into `lightgen`, the branch of the submodule's repo
+- [x] D11 The result merges into `lightgen`, the branch of the submodule's repo
   `3dlg-hcvc/TRELLIS.2-lightning` that holds all our emission work (the parent gitlink points at its
-  head, every launcher and checkout pulls it; its upstream is the same repo's `main`), or a new branch
-  with `lightgen` frozen at `pre-refactor`? Recommended: merge into `lightgen` when no job runs from
-  any checkout, as TEXGen merged into its `main`; tag `pre-refactor` and the frozen tars keep the old code.
+  head, every launcher and checkout pulls it), only after Dongchen has reviewed the branch and given
+  the go, and when no job runs from any checkout (step 17); until then all work stays on branch
+  `trellis2-emission-refactor` in this worktree. Tag `pre-refactor` and the frozen tars keep the old code.
 - [x] D12 Upstream's demo material stays (`app.py`, `app_texturing.py`, `example.py`,
   `example_texturing.py`, `assets/`): it does no harm (D9).
 - [x] D13 The LightGen part stays separate from upstream's PBR part: our code goes in files of its own
@@ -617,12 +617,12 @@ One doc of record, keeping upstream's attribution and citation (`README.md`).
 
 **Result:**
 
-### 17. Merge (per D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
+### 17. Merge into `lightgen` (D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
 
 - [ ] The full gate, the VAE table, the encode check and the training check on the branch head,
   against the `pre-refactor` baselines; the tests.
 - [ ] No job running from any `lightgen` checkout (Keep stable 15).
-- [ ] The merge and the push (with the go).
+- [ ] The merge into `lightgen` and the push (with the go).
 - [ ] In the parent, one commit: the pointer bump and the rename `TRELLIS2/` → `TRELLIS.2-Emission/` (`.gitmodules`, the
   gitlink, the o_voxel symlink target, the Solar sbatch paths of Keep stable 1, every parent
   reference: search again).
