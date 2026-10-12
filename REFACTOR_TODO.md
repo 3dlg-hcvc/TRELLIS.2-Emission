@@ -14,7 +14,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 4. Vendored Pillow (`blender_packages/`)
 - [x] 5. Launchers
 - [x] 5b. Move the kept cluster scripts into `script/internal/`
-- [ ] 6. Configs
+- [x] 6. Configs
 - [ ] 7. Check setup: inference gate, VAE table, encode check, training check, noise baselines (no code change)
 - [ ] 8. Our dataset and trainer files beside upstream's (D13)
 - [ ] 9. Coverage run (no code change)
@@ -404,8 +404,8 @@ follow (`bash -n` clean). Gate subset20 20/0/0 byte-identical; tests 25/2 (uncha
 
 ### 6. Configs
 
-- [ ] Kept: upstream's 9 (D9) and the release pair `configs/{scvae/emission_vae,gen/emission_dit}_pbr2emission_lightgenbench_v1.yaml`.
-- [ ] Deleted: every other `emission_*` config (the paper pair `*_pbr2emission_74k_v3_agentic.yaml`, D17; `emission_pbr_vae_*`, `emission_vae_74k_{fir,vulcan}`,
+- [x] Kept: upstream's 9 (D9) and the release pair `configs/{scvae/emission_vae,gen/emission_dit}_pbr2emission_lightgenbench_v1.yaml`.
+- [x] Deleted: every other `emission_*` config (the paper pair `*_pbr2emission_74k_v3_agentic.yaml`, D17; `emission_pbr_vae_*`, `emission_vae_74k_{fir,vulcan}`,
   `emission_vae_pbr2emission_74k_v3{,_nonzero_nocopy}`, `emission_dit_{74k,1k_probe,twostream_74k}`,
   `emission_dit_{albedo2emission,pbr2emission}_74k_*`, the 10-sample pairs). The training check
   brings its own config (step 7). `vis/vis_utils_test.py` already skips the tests that need a
@@ -413,7 +413,8 @@ follow (`bash -n` clean). Gate subset20 20/0/0 byte-identical; tests 25/2 (uncha
 
 **Instructions:**
 
-**Result:**
+**Result:** 25 configs removed; upstream's 9 and the release pair kept; `CLAUDE.md` names the kept configs
+and the paper runs' `config.yaml`. Gate subset20 20/0/0 byte-identical; tests 25/2 (unchanged).
 
 ### 7. Check setup: inference gate, VAE table, encode check, training check, noise baselines (no code change)
 
@@ -525,7 +526,9 @@ different script step 2 deletes, which the parent's docs still cite.
 `bake_pbr2emission_v3_init.py`, `dual_grid_from_glb.py`, `encode_shape_from_dual_grid.py`,
 `encode_pbr_from_voxels.py`, `encode_emission_twostream_dataset.py`, `eval_vae_recon.py`,
 `build_lightgenbench_index.py`: hardcoded paths, dead branches, output-only code; the docstring and the error message naming
-`encode_emission_pbrfinetune_dataset.py` (deleted in step 2) in `encode_emission_twostream_dataset.py:4,86`.
+`encode_emission_pbrfinetune_dataset.py` (deleted in step 2) in `encode_emission_twostream_dataset.py:4,86`;
+the docstring of `bake_pbr2emission_v3_init.py:27,62` names `configs/scvae/emission_vae_pbr2emission_74k_v3.yaml`
+(deleted in step 6).
 Names stay (Keep stable 12). Checks: the encode check, the VAE table; the bake's output
 `data/ckpt_init/pbr2emission_v3/{encoder,decoder}.safetensors` compared byte for byte.
 

@@ -20,9 +20,9 @@ cd o-voxel && pip install -e . && cd ..
 
 ```bash
 # Launch training (single example)
-python train.py --config configs/scvae/emission_vae_10sample_overfit.yaml \
-  --output_dir outputs/emission_vae_10sample_overfit \
-  --data_dir '{"lightgen_test": {"base": "..."}}'
+python train.py --config configs/scvae/emission_vae_pbr2emission_lightgenbench_v1.yaml \
+  --output_dir outputs/emission_vae_pbr2emission_lightgenbench_v1 \
+  --override dataset.args.data_root=<root>   # and parquet_file, split_json; see script/internal/alliance/lightgenbench_v1.sh
 
 # Resume from checkpoint
 python train.py --config <CONFIG> --output_dir <DIR> --ckpt last
@@ -203,9 +203,7 @@ Trick (in `trellis2/trainers/vae/emission_pbr_finetune.py:_pack_emission_as_pbr`
 
 I/O note: with the default `pbr_attrs: [base_color, metallic, roughness, alpha]`, `LightGenSLatEmission` reads `pbr_voxels_{res}/{sha}.vxz` for every sample, only for the trainer to overwrite those features with constants. Set `pbr_attrs: []` in the dataset args to skip the read — it's a no-op for the model.
 
-Configs: `configs/scvae/emission_pbr_*.yaml`. Sub-patterns:
-- `emission_pbr_vae_finetune_<N>sample.yaml` — small-dataset overfit setup (oversampled split + val + fp16 + EMA + AdaptiveGradClip).
-- `emission_pbr_finetune_<N>k.yaml` — full-scale training on the corresponding `<N>k` dataset.
+Configs: none kept (the `emission_pbr_*` family was deleted in the refactor; tag `pre-refactor` keeps it).
 
 #### Two-stream concat VAE (`EmissionVaeTrainer`)
 
@@ -222,7 +220,7 @@ Two encoders: a trainable emission encoder (3→32-ch latent) plus a frozen pret
 >
 > Adding `finetune_ckpt` to that architecture would have been a measured no-op — only 1 of 284
 > encoder tensors and 0 of 284 decoder tensors were shape-compatible. The fix therefore required
-> an architecture change: `configs/scvae/emission_vae_pbr2emission_74k_v3.yaml`, which matches
+> an architecture change: `configs/scvae/emission_vae_pbr2emission_74k_v3.yaml` (deleted; tag `pre-refactor`), which matches
 > the albedo→emission VAE apart from I/O channels (564 of 568 tensors identical in shape) and
 > finetunes from the same pretrained PBR VAE.
 >
@@ -236,20 +234,17 @@ The emission DiT (downstream stage) similarly takes 96-channel input (32 emissio
 
 Key trainer: `EmissionVaeTrainer` (`trellis2/trainers/vae/emission_vae.py`) — splits input into emission/PBR, encodes emission, freezes PBR encoder via `pretrained_pbr_encoder: ...`, concatenates latents for decoder.
 
-Configs: `configs/scvae/emission_vae_*.yaml` (overfit / arch-variant configs — currently the `*_<N>sample_overfit.yaml`, `*_overfit.yaml`, `*_option*_overfit.yaml` family; new variants follow the same `emission_vae_<descriptor>.yaml` shape). Production: `emission_vae_pbr2emission_74k_v3.yaml`.
+Config: `configs/scvae/emission_vae_pbr2emission_lightgenbench_v1.yaml` (the release run). The paper run's config is the `config.yaml` of its run dir `outputs/emission_vae_pbr2emission_74k_v3_agentic/` (jupiter); the other variants are in tag `pre-refactor`.
 
 #### Emission DiT conditioning (unified 2026-08-09)
 
-Three production DiT configs under `configs/gen/`, all finetuned from
-`slat_flow_imgshape2tex_dit_1_3B_512_bf16` with DINOv3 thumbnail cross-attention + CFG
+One DiT config is kept, `configs/gen/emission_dit_pbr2emission_lightgenbench_v1.yaml` (the release run;
+the paper run's config is the `config.yaml` of `outputs/emission_dit_pbr2emission_74k_v3_agentic/`),
+finetuned from `slat_flow_imgshape2tex_dit_1_3B_512_bf16` with DINOv3 thumbnail cross-attention + CFG
 (`p_uncond: 0.1`). PBR/shape conditioning is per-token channel concat via `concat_cond`
-(order `[x_t | shape | pbr]`, built in `LightGenSLatEmissionLatent`):
-
-| config | in | concat_cond | role |
-|---|---|---|---|
-| `emission_dit_albedo2emission_pbrcond_74k_v2` | 96 | shape 32 + PBR 32 | albedo-slot latents WITH PBR cond — the 2026-08-09 conditioning-parity successor; input proj re-initialized (64→96 mismatch, warn-and-skip in `trainers/basic.py:_load_weights_for_model`) |
-| `emission_dit_albedo2emission_74k_v2` | 64 | shape 32 only (`skip_pbr_cond=true`) | the original no-PBR run — now the "without pbr condition" ablation; full weight reuse incl. input proj |
-| `emission_dit_pbr2emission_74k_v2` | 96 | shape 32 + PBR 32 | two-stream latents (its decoder REQUIRES `z_pbr`) |
+(order `[x_t | shape | pbr]`, built in `LightGenSLatEmissionLatent`): `in_channels` 96 = 32 + shape 32 +
+PBR 32; the two-stream decoder requires `z_pbr`. The `_v2` configs of the 2026-08-09 unification
+(albedo→emission with and without PBR conditioning) are in tag `pre-refactor`.
 
 Since the unification, `skip_pbr_cond` no longer separates the two chains — the chain
 identity is the emission-latent representation (albedo-slot vs two-stream VAE); display
@@ -299,11 +294,8 @@ All configs live under `configs/scvae/`. Pick trainer by prefix:
 | Pattern | Trainer | Approach |
 |---|---|---|
 | `emission_vae_*.yaml` | `EmissionVaeTrainer` | two-stream concat VAE (trainable emission encoder + frozen PBR encoder) |
-| `emission_pbr_*.yaml` | `EmissionPbrFinetuneTrainer` | PBR VAE channel-hijack finetune |
 
-Sub-token rules under `emission_pbr_*`:
-- `emission_pbr_vae_finetune_*` — explicit "finetune of the pretrained PBR VAE" (the `_pbr_vae_` token).
-- `emission_pbr_finetune_*` — same trainer, larger-scale variants (legacy name without the `_vae_` token).
+(The `emission_pbr_*` channel-hijack family is in tag `pre-refactor`.)
 
 Dataset-size suffix is part of the file stem: `_<N>sample` for tiny overfit (10, 100, …), `_<N>k` / `_<N>m` for full training. Output dir, job name, and log filename all reuse the same stem.
 
@@ -312,7 +304,7 @@ Dataset-size suffix is part of the file stem: `_<N>sample` for tiny overfit (10,
 - A val loop (`val_split_name: <name>` in trainer args, plus a non-zero `limit_val_batches`). Configs without validation are not accepted — for tiny / overfit datasets, validate against the same samples as train (the "did the model memorize?" signal).
 - Wandb logging (`wandb_enable: true` + `wandb_project` + `wandb_name`). See "Run logging policy" above for the full block.
 
-When adding a new config, copy the val block **and** the wandb block from any existing `*_<N>sample*.yaml` overfit config in `configs/scvae/` as a template.
+When adding a new config, copy the val block **and** the wandb block from the release config `configs/scvae/emission_vae_pbr2emission_lightgenbench_v1.yaml` as a template.
 
 #### Checkpoint policy
 
