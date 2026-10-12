@@ -155,7 +155,7 @@ python data_toolkit/dump_mesh.py <SUBSET> --root <ROOT>        # extract meshes
 python data_toolkit/dump_pbr.py <SUBSET> --root <ROOT>         # extract PBR + emissive textures
 python data_toolkit/voxelize_pbr.py ...                        # mesh → O-Voxel
 python data_toolkit/encode_pbr_latent.py ...                   # voxel → latent
-python data_toolkit/encode_emission_twostream_dataset.py ...  # emission voxel → latent (lightgen)
+python data_toolkit/encode_emission_latents.py ...  # emission voxel → latent (lightgen)
 ```
 
 ## Testing

@@ -9,9 +9,9 @@ Skips segmentation labels (we don't have them from GLB).
 
 Usage:
     python data_toolkit/dual_grid_from_glb.py \
-        --parquet data/lightgen_1k/df_SomgProc_emission_filtered.parquet \
-        --glb_root /local-scratch/localhome/dya78/code/lightgen/data/TexVerse-1K \
-        --out_root data/lightgen_1k \
+        --parquet <root>/<index>.parquet \
+        --glb_root <dir with the GLBs> \
+        --out_root <root> \
         --resolution 256
 """
 from __future__ import annotations

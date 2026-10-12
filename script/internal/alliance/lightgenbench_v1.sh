@@ -138,7 +138,7 @@ bash script/internal/alliance/lightgenbench_unpack.sh vae \$ROOT 2>&1 | tee -a "
 {
   pids=()
   for r in 0 1 2 3; do
-    CUDA_VISIBLE_DEVICES=\$r python -u data_toolkit/encode_emission_twostream_dataset.py \\
+    CUDA_VISIBLE_DEVICES=\$r python -u data_toolkit/encode_emission_latents.py \\
       --data_root \$ROOT --parquet \$ROOT/df_lightgenbench.parquet \\
       --vae_ckpt ${VAE_CKPT} --vae_cfg ${VAE_CFG} \\
       --latent_name ${LATENT_NAME} --resolution 256 --rank \$r --world_size 4 &
@@ -146,7 +146,7 @@ bash script/internal/alliance/lightgenbench_unpack.sh vae \$ROOT 2>&1 | tee -a "
   done
   fail=0; for p in \${pids[@]}; do wait \$p || fail=1; done
   [ \$fail -eq 0 ] || { echo "ERROR: an encode rank failed"; exit 1; }
-  python -u data_toolkit/encode_emission_twostream_dataset.py \\
+  python -u data_toolkit/encode_emission_latents.py \\
       --data_root \$ROOT --parquet \$ROOT/df_lightgenbench.parquet \\
       --vae_ckpt ${VAE_CKPT} --vae_cfg ${VAE_CFG} \\
       --latent_name ${LATENT_NAME} --resolution 256 --rank 0 --world_size 4 --aggregate_stats || exit 1
@@ -173,7 +173,7 @@ JOB
 if [ "$STAGE" = vae ]; then cat >> "$JOB" <<JOB
 # Bake the derived init here (gitignored, deterministic, seconds). The verifier is a hard gate:
 # without it the trainer would silently drop the 5 derived tensors and cold-start.
-python -u data_toolkit/bake_pbr2emission_v3_init.py --out data/ckpt_init/pbr2emission_v3 --verify-config ${CONFIG} 2>&1 | tee -a "\${LOG}"
+python -u data_toolkit/init_emission_vae_from_pbr_vae.py --out data/ckpt_init/pbr2emission_v3 --verify-config ${CONFIG} 2>&1 | tee -a "\${LOG}"
 [ \${PIPESTATUS[0]} -eq 0 ] || { echo "FATAL: init bake failed"; exit 1; }
 JOB
 else cat >> "$JOB" <<JOB

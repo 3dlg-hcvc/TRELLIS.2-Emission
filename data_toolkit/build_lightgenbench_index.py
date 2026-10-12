@@ -1,4 +1,4 @@
-"""LightgenBench splits.json -> the two index files trellis2/datasets/lightgen_slat.py reads.
+"""LightgenBench splits.json -> the two index files the emission datasets read (trellis2/datasets/emission_helpers.py).
 
 The dataset classes are used unchanged. _build_parquet_samples takes
   * a parquet whose index is the sample id (rows with success != True are dropped), and
@@ -50,7 +50,7 @@ def build(splits, out_dir):
 
 
 def check(splits, out_dir):
-    # Same read and filter as lightgen_slat._build_parquet_samples / _apply_split_indices.
+    # Same read and filter as emission_helpers._build_parquet_samples / _apply_split_indices.
     df = pd.read_parquet(os.path.join(out_dir, PARQUET))
     df = df[df["success"] == True]  # noqa: E712
     ids = [str(x) for x in df.index]

@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """Encode emission voxels to 32-ch latents using the TWO-STREAM emission VAE.
 
-Two-stream sibling of encode_emission_pbrfinetune_dataset.py. The difference is
-the encoder: the two-stream VAE (EmissionVaeTrainer) has a dedicated emission
-encoder with in_channels=3, so we feed the raw 3-ch emission SparseTensor
-directly — no pack-as-PBR step (that is only for the channel-hijack VAE whose
-encoder expects 6 PBR channels).
+The two-stream VAE (EmissionVaeTrainer) has a dedicated emission encoder with
+in_channels=3, so the raw 3-ch emission SparseTensor goes in directly (no pack-as-PBR
+step; that was the deleted albedo->emission VAE's, whose encoder took 6 PBR channels).
 
 The encoder weights are the `models.encoder.*` entries of the two-stream VAE's
 Lightning checkpoint (the trainable z_emission encoder; the frozen PBR encoder
@@ -19,12 +17,12 @@ Emission normalization stats are written to
 for pasting into the DiT config.
 
 Usage:
-    python data_toolkit/encode_emission_twostream_dataset.py \
-        --data_root data/lightgen_74k \
-        --parquet data/lightgen_74k/df_SomgProc_final.parquet \
-        --vae_ckpt outputs/emission_vae_twostream_74k_fir/ckpts/last-v1.ckpt \
-        --vae_cfg  outputs/emission_vae_twostream_74k_fir/config.yaml \
-        --latent_name emission_vae_twostream_74k \
+    python data_toolkit/encode_emission_latents.py \
+        --data_root <root> \
+        --parquet <root>/df_lightgenbench.parquet \
+        --vae_ckpt outputs/emission_vae_pbr2emission_lightgenbench_v1/ckpts/step0035400-0.0036.ckpt \
+        --vae_cfg  outputs/emission_vae_pbr2emission_lightgenbench_v1/config.yaml \
+        --latent_name emission_pbr2emission_lightgenbench_v1 \
         --resolution 256
 """
 from __future__ import annotations
@@ -83,7 +81,7 @@ def main() -> None:
     in_ch = vae_cfg["models"]["encoder"]["args"].get("in_channels")
     assert in_ch == 3, (
         f"two-stream emission encoder must have in_channels=3 (raw emission); got {in_ch}. "
-        f"For the 6-ch channel-hijack VAE use encode_emission_pbrfinetune_dataset.py."
+        f"(The 6-ch albedo->emission VAE and its encoder script were deleted in the refactor.)"
     )
     ckpt = torch.load(args.vae_ckpt, map_location="cpu", weights_only=False)
     enc_state = {

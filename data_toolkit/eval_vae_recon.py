@@ -14,8 +14,9 @@ Arms (one CSV row per arm x shape):
 
   pretrained_pad           pretrained tex_{enc,dec}_next_dc_f16c32_fp16, emission packed into
                            the base_color slot, metallic/roughness/alpha = constants (-1,+1,+1)
-                           -- byte-for-byte the packing EmissionPbrFinetuneTrainer trains with
-                           (emission_pbr_finetune.py:_pack_emission_as_pbr). Output channels
+                           -- byte-for-byte the packing the albedo->emission
+                           EmissionPbrFinetuneTrainer trained with (deleted in the refactor;
+                           tag pre-refactor). Output channels
                            0:3 are the emission prediction.
   pretrained_realpbr       same weights, same base_color slot, but metallic/roughness/alpha are
                            the shape's REAL PBR -- the pretrained VAE at its least handicapped.
@@ -81,7 +82,7 @@ from trellis2.modules import sparse as sp
 from trellis2.trainers.builders import build_models
 
 PBR_ATTRS = ("base_color", "metallic", "roughness", "alpha")  # 3+1+1+1 = 6, dataset order
-# metallic=0, roughness=1, alpha=1 in [-1,1] -- EmissionPbrFinetuneTrainer.PAD_{METALLIC,ROUGHNESS,ALPHA}
+# metallic=0, roughness=1, alpha=1 in [-1,1] -- EmissionPbrFinetuneTrainer.PAD_{METALLIC,ROUGHNESS,ALPHA} (deleted; tag pre-refactor)
 PAD_MRA = (-1.0, 1.0, 1.0)
 EPS_LIT = 1.0 / 255.0  # the point-sampled evaluator's IoU threshold (strict >)
 PSNR_CAP = 40.0

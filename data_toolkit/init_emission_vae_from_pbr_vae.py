@@ -23,10 +23,11 @@ mismatches -- no trainer code is touched, and no other config can be affected.
 
 OPT-IN SURFACE
 --------------
-Only the two `finetune_ckpt` paths of
-configs/scvae/emission_vae_pbr2emission_74k_v3.yaml point at this output.
-Every other config keeps its hub short-id, so the five DiT configs that
-deliberately reinitialize their 64->96 input projection are untouched by
+Only the two `finetune_ckpt` paths of the emission VAE config
+(configs/scvae/emission_vae_pbr2emission_lightgenbench_v1.yaml; the paper run's
+emission_vae_pbr2emission_74k_v3_agentic did the same) point at this output.
+Every other config keeps its hub short-id, so the DiT config, which
+deliberately reinitializes its 64->96 input projection, is untouched by
 construction -- there is no flag to set wrong.
 
 THE MAPPING
@@ -36,7 +37,8 @@ encoder.input_layer  : SparseLinear is nn.Linear (modules/sparse/linear.py:10),
     The pretrained 6-channel order is [base_color(0:3), metallic, roughness,
     alpha] (configs/scvae/tex_vae_next_dc_f16c32_fp16.yaml attrs), and the
     albedo chain packs emission into the base_color slot
-    (emission_pbr_finetune.py:54-65).  -> take columns 0:3.
+    (EmissionPbrFinetuneTrainer._pack_emission_as_pbr, deleted in the refactor;
+    tag pre-refactor).  -> take columns 0:3.
     The dropped columns 3:6 saw the CONSTANTS (-1, +1, +1), so their
     contribution is a fixed offset, not data.  Discarding it silently changes
     the layer's operating point (||offset|| = 2.01 vs ||bias|| = 1.14), so it is
@@ -57,9 +59,9 @@ decoder.output_layer : axis 0 is the output channel; emission is the
     base_color slot -> take rows 0:3 of weight and bias.
 
 Usage:
-    conda run -n trellis2 python data_toolkit/bake_pbr2emission_v3_init.py \
+    conda run -n trellis2 python data_toolkit/init_emission_vae_from_pbr_vae.py \
         --out data/ckpt_init/pbr2emission_v3 \
-        --verify-config configs/scvae/emission_vae_pbr2emission_74k_v3.yaml
+        --verify-config configs/scvae/emission_vae_pbr2emission_lightgenbench_v1.yaml
 """
 from __future__ import annotations
 
@@ -73,8 +75,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import torch
 from safetensors.torch import load_file, save_file
 
-# The albedo->emission chain's constant pad, in [-1, 1] space.
-# trellis2/trainers/vae/emission_pbr_finetune.py:37-39
+# The albedo->emission chain's constant pad, in [-1, 1] space
+# (EmissionPbrFinetuneTrainer, deleted in the refactor; tag pre-refactor).
 PAD = torch.tensor([-1.0, 1.0, 1.0])  # metallic, roughness, alpha
 EMI = 3   # emission channels == width of the base_color slot
 LAT = 32  # pretrained latent width; v3's decoder takes 2 * LAT

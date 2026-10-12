@@ -19,7 +19,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 8. Our dataset and trainer files beside upstream's (D13)
 - [x] 9. Coverage run (no code change)
 - [x] 10. The predictor `predict_emission.py`
-- [ ] 11. The chain scripts in `data_toolkit/`
+- [x] 11. The chain scripts in `data_toolkit/`
 - [ ] 12. Our hooks out of upstream's `train.py`, `basic.py`, `callbacks.py` (D13)
 - [ ] 13. The viewers in `vis/`
 - [ ] 14. Environment files
@@ -200,12 +200,13 @@ Step 7 adds the numeric comparison.
     when `min_emission > 0`, the `#stat_emission_color_max` filter (`emission_helpers.py:120-122`) (auto-detected names
     `data_splits_emission_filtered.json`, `data_splits_filtered.json`). Producers:
     `../data_processing/data_preparation/voxels.py:250-279` and `run.py:147-161`,
-    `data_toolkit/build_lightgenbench_index.py`, `data_toolkit/encode_emission_twostream_dataset.py`,
+    `data_toolkit/build_lightgenbench_index.py`, `data_toolkit/encode_emission_latents.py`,
     `script/alliance/lightgenbench_unpack.sh`.
 12. The chain script names the release launcher calls (`script/internal/alliance/lightgenbench_v1.sh:141,171,176,227`;
     `script/alliance/` until step 5b):
-    `data_toolkit/encode_emission_twostream_dataset.py`, `data_toolkit/build_lightgenbench_index.py`,
-    `data_toolkit/bake_pbr2emission_v3_init.py`, `train.py`.
+    `data_toolkit/encode_emission_latents.py` (`encode_emission_twostream_dataset.py` until step 11),
+    `data_toolkit/build_lightgenbench_index.py`,
+    `data_toolkit/init_emission_vae_from_pbr_vae.py` (`bake_pbr2emission_v3_init.py` until step 11), `train.py`.
 13. The `[ckpt-timing] SAVE_START step=N epoch=E t=T` and `RESUME_AFTER_SAVE step=N gap=Gs t=T`
     log lines and their timing (`CheckpointTimingCallback`, `callbacks.py:225,238`): the Alliance
     launcher's snapshot logic (`lightgenbench_v1.sh:192-218`) and the cs-venus-19 watcher
@@ -331,8 +332,8 @@ Not used by the paper or the release run. The 9 live files that hardcode the old
   `vis_emission_vae.py`, `viz_uv_{albedo,alignment,gallery}.py`, `verify_albedo2emission_v3/`,
   `verify_pbr2emission_v3/`, `datasets/lightgen_74k.py`, `blender_script/dump_pbr_nonormalize.py`.
 - [x] `vis/vis_emission_vae.py`.
-- [x] Kept in `data_toolkit/` (ours): `bake_pbr2emission_v3_init.py`, `dual_grid_from_glb.py`,
-  `encode_shape_from_dual_grid.py`, `encode_pbr_from_voxels.py`, `encode_emission_twostream_dataset.py`,
+- [x] Kept in `data_toolkit/` (ours): `init_emission_vae_from_pbr_vae.py`, `dual_grid_from_glb.py`,
+  `encode_shape_from_dual_grid.py`, `encode_pbr_from_voxels.py`, `encode_emission_latents.py`,
   `predict_emission.py`, `eval_vae_recon.py`, `build_lightgenbench_index.py`, and the
   tests `test_eval_vae_recon.py`, `test_emission_vae_resume.py`, `test_checkpoint_cadence.py`.
 
@@ -438,7 +439,7 @@ data and run outputs outside the repo.
   `trellis2_release/infer_solar.sbatch` pattern with a `git archive` of the tree under test; it
   requires compute capability 8.9).
 - [x] The VAE table and its noise run.
-- [x] The encode check: `encode_emission_twostream_dataset.py` on the gate shapes with the paper VAE;
+- [x] The encode check: `encode_emission_latents.py` on the gate shapes with the paper VAE;
   the latents and `normalization_stats.json` compared before and after (the paper encode recorded
   bitwise-equal tensors across its two ranks).
 - [x] The release checkpoints: pull the release VAE `step0035400-0.0036.ckpt` (13.3 GB) and DiT
@@ -549,19 +550,24 @@ with the merge (step 17).
 
 ### 11. The chain scripts in `data_toolkit/`
 
-`bake_pbr2emission_v3_init.py`, `dual_grid_from_glb.py`, `encode_shape_from_dual_grid.py`,
-`encode_pbr_from_voxels.py`, `encode_emission_twostream_dataset.py`, `eval_vae_recon.py`,
+`init_emission_vae_from_pbr_vae.py`, `dual_grid_from_glb.py`, `encode_shape_from_dual_grid.py`,
+`encode_pbr_from_voxels.py`, `encode_emission_latents.py`, `eval_vae_recon.py`,
 `build_lightgenbench_index.py`: hardcoded paths, dead branches, output-only code; the docstring and the error message naming
-`encode_emission_pbrfinetune_dataset.py` (deleted in step 2) in `encode_emission_twostream_dataset.py:4,86`;
-the docstring of `bake_pbr2emission_v3_init.py:27,62` names `configs/scvae/emission_vae_pbr2emission_74k_v3.yaml`
+`encode_emission_pbrfinetune_dataset.py` (deleted in step 2) in `encode_emission_latents.py:4,86`;
+the docstring of `init_emission_vae_from_pbr_vae.py:27,62` names `configs/scvae/emission_vae_pbr2emission_74k_v3.yaml`
 (deleted in step 6).
 Comments citing `trellis2/trainers/vae/emission_pbr_finetune.py` (deleted in step 8b):
-`bake_pbr2emission_v3_init.py:39,77`, `eval_vae_recon.py:17-18,84`. Names stay (Keep stable 12). Checks: the encode check, the VAE table; the bake's output
+`init_emission_vae_from_pbr_vae.py:39,77`, `eval_vae_recon.py:17-18,84`. Names stay (Keep stable 12), but for two, at review (Dongchen, 2026-10-12 and -13):
+`encode_emission_twostream_dataset.py` became `encode_emission_latents.py`, and `bake_pbr2emission_v3_init.py`
+became `init_emission_vae_from_pbr_vae.py` (its output folder `data/ckpt_init/pbr2emission_v3/` stays); the gate scripts
+take either name of both. Checks: the encode check, the VAE table; the bake's output
 `data/ckpt_init/pbr2emission_v3/{encoder,decoder}.safetensors` compared byte for byte.
 
 **Instructions:**
 
-**Result:**
+**Result:** Docstrings, usage examples and comments in five scripts name the release run and no deleted file; one error message
+reworded. No logic change (AST: docstrings and comments only, plus that message). Bake output, index files, encode
+check and VAE table all identical.
 
 ### 12. Our hooks out of upstream's `train.py`, `basic.py`, `callbacks.py` (D13)
 
@@ -626,7 +632,7 @@ No user or cluster paths in this layer. Needs steps 10 and 11; its README comman
   release does not carry latents. A user needs the commands that make them
   (`dual_grid_from_glb.py` → `encode_shape_from_dual_grid.py`, `encode_pbr_from_voxels.py`); check
   on a few shapes that they reproduce the jupiter latents.
-- [ ] The chain in order with generic paths: bake the VAE init (`bake_pbr2emission_v3_init.py`) →
+- [ ] The chain in order with generic paths: bake the VAE init (`init_emission_vae_from_pbr_vae.py`) →
   train the VAE → encode the emission latents with the best-`val/loss` VAE → put
   `normalization_stats.json` into the DiT config (the release launcher refuses a mismatch; a generic
   check does the same) → train the DiT → predict. The recipe is the release configs plus the launcher's
@@ -665,7 +671,10 @@ One doc of record, keeping upstream's attribution and citation (`README.md`).
   reference: search again).
 - [ ] The parent's four callers of `data_toolkit/predict_emission.py` (`predict_emission_voxels_twostream.py`
   before step 10): `evaluation/newdata_eval/sweeps/job_dit.sh`, `sweeps/star2/dit_worker.sbatch`,
-  `trellis2_release/infer_local.sh`, `trellis2_release/infer_solar.sbatch`; and the live docs naming it.
+  `trellis2_release/infer_local.sh`, `trellis2_release/infer_solar.sbatch`; and the parent docs that name
+  the renamed scripts by their old names: `docs/status/paper-supp-todo.md:39` (`bake_pbr2emission_v3_init.py`;
+  the same sentence names the paper config step 6 deleted), `docs/status/checkpoints.md:988`
+  (`encode_emission_twostream_dataset.py`), and the live docs naming the predictor.
 - [ ] Parent docs: `AGENTS.md:31,45-47,54,65,152-163` (`:45-47`: the ~20 files with the old path are
   inside TRELLIS2, not in the parent, and step 2 deletes the live ones; the symlink stays for o_voxel),
   `.claude/rules/trellis2.md` (paths, scripts, trainer names; already stale: `:130` names `_v3` as

@@ -45,7 +45,7 @@
 #   decoder.output_layer.bias     (6,)      -> (3,)       emission RGB out
 #
 # None of the four is left random: all are resolved offline by
-# data_toolkit/bake_pbr2emission_v3_init.py (see finetune_ckpt below), which
+# data_toolkit/init_emission_vae_from_pbr_vae.py (see finetune_ckpt below), which
 # takes the pretrained base_color slice for the three I/O tensors and puts the
 # pretrained latent projection in from_latent's emission half, zeroing only the
 # genuinely new z_pbr half. A FIFTH tensor is also rewritten —
@@ -207,20 +207,20 @@ trainer:
     #   albedo->emission reference   0.00488
     #   raw hub files (skip)         1.77424   <- worse than predicting a constant (0.94108)
     #   these baked files            0.00488   <- identical to the reference, to 5e-8
-    # (data_toolkit/verify_pbr2emission_v3/results.json)
+    # (data_toolkit/verify_pbr2emission_v3/results.json, deleted in step 2; tag pre-refactor keeps it)
     #
-    # bake_pbr2emission_v3_init.py resolves all four offline, so the trainer does
+    # init_emission_vae_from_pbr_vae.py resolves all four offline, so the trainer does
     # a clean 284/284 load through UNMODIFIED code. That is why this is a baked
-    # file and not a trainer flag: the five DiT configs deliberately reinitialize
+    # file and not a trainer flag: the DiT config deliberately reinitializes
     # a mismatched 64->96 input projection, and a generic "adapt mismatched
     # shapes" option would silently change the init behind the shipped
     # 0.3326 / 0.3224 numbers. Here there is no flag to set wrong.
     #
     # Regenerate (gitignored, ~1.6 GB, deterministic — the launcher does this in
     # the job body so cluster nodes need no rsync):
-    #   python data_toolkit/bake_pbr2emission_v3_init.py \
+    #   python data_toolkit/init_emission_vae_from_pbr_vae.py \
     #       --out data/ckpt_init/pbr2emission_v3 \
-    #       --verify-config configs/scvae/emission_vae_pbr2emission_74k_v3.yaml
+    #       --verify-config configs/scvae/emission_vae_pbr2emission_lightgenbench_v1.yaml
     finetune_ckpt:
       encoder: data/ckpt_init/pbr2emission_v3/encoder.safetensors
       decoder: data/ckpt_init/pbr2emission_v3/decoder.safetensors
