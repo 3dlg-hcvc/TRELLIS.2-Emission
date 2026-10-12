@@ -84,7 +84,7 @@ SBATCH wrappers live under `script/star2/<task>.sh` — one script per experimen
 - **Sync the launcher's commit to the cluster.** Never edit source files on the cluster; edit locally, `git push origin <branch>`, and put `git pull origin <branch>` in the sbatch body right after `cd /localscratch/dya78/TRELLIS.2-lightning`. This makes "what code ran" unambiguous and lets multiple collaborators share the cluster clone without racing edits.
 - **Regenerate gitignored artifacts in the body.** Files under `data/` (e.g. `data_splits_*.json`) are gitignored and won't arrive via `git pull` — regenerate them in the body so a fresh cluster clone works end-to-end.
 
-Naming convention: `script/star2/<task>.sh` ↔ job name / output dir `<task>[_<TAG>]` ↔ status report `reports/<task>_status.md`. When adding a new launch script, copy the closest existing one under `script/star2/` rather than writing from scratch.
+Naming convention: `script/star2/<task>.sh` ↔ job name / output dir `<task>[_<TAG>]` ↔ status report `reports/<task>_status.md`. When adding a new launch script, start from the closest one in tag `pre-refactor` (`git show pre-refactor:script/star2/<file>`; only `backup_run.sh` is kept here) rather than writing from scratch.
 
 #### Interactive debug allocation (probe before sbatch)
 
@@ -119,7 +119,7 @@ Gotcha: `nvidia-smi` via a second `srun --jobid=<id> --overlap` is scoped to the
 
 ### Fir deployment (Alliance Canada H100)
 
-Deployed at `/scratch/dya78/TRELLIS.2-lightning/` (`lightgen` branch), venv at `env/`; fir launch scripts under `script/fir/`. Unlike star2, three deps are **not** plain pip installs:
+Deployed at `/scratch/dya78/TRELLIS.2-lightning/` (`lightgen` branch), venv at `env/`; the fir launch scripts were under `script/fir/` (deleted; tag `pre-refactor` keeps them), the release runs use `script/alliance/`. Unlike star2, three deps are **not** plain pip installs:
 
 - **pyarrow** and **opencv** ship as Alliance *modules*, not wheels. Every fir job body must `module load StdEnv/2023 gcc python/3.11 cuda/12.6 arrow/21.0.0 opencv/4.13.0` **before** `source env/bin/activate`.
 - **diffusers** was missing from the env: `env/bin/pip install --no-index diffusers`.
@@ -128,14 +128,12 @@ Deployed at `/scratch/dya78/TRELLIS.2-lightning/` (`lightgen` branch), venv at `
 
 **PBR-VAE max batch size** (single H100 80GB, `EmissionPbrFinetuneTrainer`, fp16 + activation checkpointing): hard cap ≈ BS 88 on 1k data (BS 80 = 98% VRAM knife-edge; BS 96 OOMs). For 74k production (fatter voxel-count tail → +15–20% VRAM at the same BS), use **BS=48** (safe, ~76% on 1k) or BS=64 (aggressive — will occasionally OOM, needs `--requeue`). Always set `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`.
 
-**Vulcan deployment:** `script/vulcan/` holds 4 vulcan launch wrappers (same pattern as `script/fir/`).
-
 ## Data Paths
 
 - **Data root:** `data/lightgen_test/` — repo-relative path that works on every host. The 10-sample dataset (parquet, emission voxels, PBR voxels, latents, splits) lives here as real files. The `data/` directory is gitignored. To deploy on a new host, copy/rsync `data/lightgen_test/` along with the repo (e.g. `rsync -av data/ host:/path/to/repo/data/`).
-- **74k subset (jupyter):** `/3dlg-jupiter-project/lightgen/dataset/lightgen_74k/` (or `/cs/3dlg-jupiter-project/...` from the jupyter side). Holds `metadata.csv`, `df_SomgProc_final.parquet`, `data_splits_emissive_74k_pinned.json`, plus 8 `voxels/part<N>_voxels.tar` and 8 `latents/part<N>_latents.tar` produced by the prep pipeline (`script/star2/prep_74k_chain.sh`).
+- **74k subset (jupyter):** `/3dlg-jupiter-project/lightgen/dataset/lightgen_74k/` (or `/cs/3dlg-jupiter-project/...` from the jupyter side). Holds `metadata.csv`, `df_SomgProc_final.parquet`, `data_splits_emissive_74k_pinned.json`, plus 8 `voxels/part<N>_voxels.tar` and 8 `latents/part<N>_latents.tar` produced by the Blender prep pipeline (deleted; tag `pre-refactor` keeps it).
   - **Current encoding coverage** (as of 2026-05-08): both `pbr_latents/tex_enc_next_dc_f16c32_fp16_256/` and `shape_latents/shape_enc_next_dc_f16c32_fp16_256/` are present per shard. Per-shard counts vary slightly because of per-sample Blender failures on bad GLBs (~1 % loss) plus, for shard 4, **348 dual-grid samples were skipped** because their meshes exceeded a 500 GB single-process memory budget (pathological vertex count). Net coverage ≈ **99 %** of the 73,472 sha256s once the rank-2 backfill finishes (rank 2's first attempt landed only 2,328 samples due to a partial-state artifact during early debug iteration; the backfill is in flight on cs-venus-16).
-  - **Data-prep operational notes** (lessons from the first 74k run, baked into `script/star2/prep_74k_*.sh`):
+  - **Data-prep operational notes** (lessons from the first 74k run):
     - **Stage A (Blender dump) is pure CPU** — never request `--gres=gpu` for the AB job; that wastes a GPU for hours. Stage C (latent encoders) does need `--gres=gpu:1`.
     - **`/localscratch` is shared across users on each compute node**; cs-venus-{15,16}'s 5.8 TB volume hovers around 100 % full from other users. Per-rank `pbr_dumps/` peaks at ~270 GB; running 4 ranks concurrently per node blows the disk. Cap at 1–2 ranks per node, or use the inline pickle-cleanup pattern (delete each `.pickle` after voxelize+dual_grid consume it; the one-off `r2_resume.sh` that demonstrated this has been removed).
     - **Sparse-voxel dual_grid spikes RAM unpredictably**; some meshes need >500 GB single-process RAM. Ask for ≥256 GB with few workers, or accept a few-percent loss on pathological samples.

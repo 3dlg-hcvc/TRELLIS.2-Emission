@@ -12,7 +12,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 2. Dead root files and one-off scripts
 - [x] 3. `archive/`, patches, stale reports and plans, stale ignore rules
 - [x] 4. Vendored Pillow (`blender_packages/`)
-- [ ] 5. Launchers
+- [x] 5. Launchers
 - [ ] 5b. Move the kept cluster scripts into `script/internal/`
 - [ ] 6. Configs
 - [ ] 7. Check setup: inference gate, VAE table, encode check, training check, noise baselines (no code change)
@@ -374,11 +374,11 @@ subset20 20/0/0 byte-identical; tests 25 passed, 2 failed (unchanged).
 
 64 files today (63 scripts and one requirements file): alliance 10, fir 25, star2 25, vulcan 4.
 
-- [ ] Kept (release): `script/alliance/{lightgenbench_v1,lightgenbench_stage,lightgenbench_unpack}.sh`,
+- [x] Kept (release): `script/alliance/{lightgenbench_v1,lightgenbench_stage,lightgenbench_unpack}.sh`,
   the stage wrappers `script/alliance/{emission_vae_pbr2emission_lightgenbench_v1,encode_emission_pbr2emission_lightgenbench_v1,emission_dit_pbr2emission_lightgenbench_v1}.sh`,
   `script/alliance/{build_env.sh,requirements-fir-2026-09-07.txt,smoke_gpu.sh}`, and
   `script/star2/backup_run.sh` (Keep stable 14).
-- [ ] Deleted: the rest, among them the paper's four (D17: `script/fir/emission_vae_pbr2emission_74k_v3_agentic.sh`,
+- [x] Deleted: the rest, among them the paper's four (D17: `script/fir/emission_vae_pbr2emission_74k_v3_agentic.sh`,
   `script/fir/encode_emission_pbr2emission_74k_v3_agentic.sh`,
   `script/star2/emission_dit_pbr2emission_74k_v3_agentic_venus19.sh`,
   `script/star2/dit_agentic_snapshot_last_venus19.sbatch`), `script/alliance/emission_dit_74k.sh`, all of `script/vulcan/`,
@@ -387,7 +387,8 @@ subset20 20/0/0 byte-identical; tests 25 passed, 2 failed (unchanged).
 
 **Instructions:**
 
-**Result:**
+**Result:** 54 launchers removed, 10 kept (release, Alliance env, `backup_run.sh`); `CLAUDE.md` points at tag
+`pre-refactor` for the old ones. Gate subset20 20/0/0 byte-identical; tests 25/2 (unchanged).
 
 ### 5b. Move the kept cluster scripts into `script/internal/`
 
@@ -602,6 +603,8 @@ No user or cluster paths in this layer. Needs steps 10 and 11; its README comman
   DiT 4 × 8, 50,000 steps, from `slat_flow_imgshape2tex_dit_1_3B_512_bf16`): the generic commands
   carry the overrides, and the README states the GPU memory they need.
 - [ ] The internal Alliance launchers stay as they are.
+- [ ] The release DiT config's comment at `:36` names `script/fir/encode_twostream_dit_latents_74k.sh`
+  (deleted in step 5).
 
 **Instructions:**
 
