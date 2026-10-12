@@ -91,7 +91,7 @@ class LightGenSLatEmissionLatent(Dataset):
         self.dummy_cond_channels = dummy_cond_channels
         self.thumbnail_dir = thumbnail_dir
         self.image_size = image_size
-        # When skip_pbr_cond=True, we run in the channel-hijack regime: the
+        # When skip_pbr_cond=True, we run in the albedo→emission regime: the
         # emission latent IS the PBR-slot latent (VAE trained with emission
         # packed into base_color + default metallic/roughness/alpha), so
         # concat_cond = shape only and DiT input = 32 (x_0) + 32 (shape) = 64,
@@ -168,7 +168,7 @@ class LightGenSLatEmissionLatent(Dataset):
         )
 
         if self.skip_pbr_cond:
-            # Channel-hijack regime: concat_cond = shape only (32ch). PBR
+            # albedo→emission regime: concat_cond = shape only (32ch). PBR
             # conditioning is unnecessary because our emission VAE already
             # encoded [emit_rgb, default_metallic, default_roughness, default_alpha]
             # into the 32-ch latent, which IS the PBR-slot latent.

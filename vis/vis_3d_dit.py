@@ -125,7 +125,7 @@ def _build_vae_decoder_from_latent(vae_handle):
     elif trainer == "EmissionPbrFinetuneTrainer":
         @torch.no_grad()
         def decode_from_latent(x_gt, z_dit_raw, z_pbr_raw):
-            # Channel-hijack trainer encodes emission-as-PBR; prime with the
+            # The albedo→emission trainer encodes emission-as-PBR; prime with the
             # same packed input the trainer uses.
             from trellis2.modules import sparse as sp
             packed = _pack_emission_as_pbr(x_gt.feats)
@@ -240,7 +240,7 @@ def main():
             skip_pbr_cond = bool(ds.get("skip_pbr_cond", False))
             emit_mean = torch.tensor(ds["emission_normalization"]["mean"])
             emit_std  = torch.tensor(ds["emission_normalization"]["std"])
-            # pbr_normalization is absent in channel-hijack (skip_pbr_cond) configs.
+            # pbr_normalization is absent in albedo→emission (skip_pbr_cond) configs.
             pbr_mean = pbr_std = None
             if not skip_pbr_cond:
                 pbr_mean = torch.tensor(ds["pbr_normalization"]["mean"])
@@ -261,7 +261,7 @@ def main():
             z_emit_n  = _norm(z_emit_raw,  emit_mean,  emit_std).to(DEVICE)
             z_shape_n = _norm(z_shape_raw, shape_mean, shape_std).to(DEVICE)
             if skip_pbr_cond:
-                # Channel-hijack DiT: concat_cond = shape only (32ch); DiT input = 32 (x_t) + 32 (shape) = 64.
+                # albedo→emission DiT: concat_cond = shape only (32ch); DiT input = 32 (x_t) + 32 (shape) = 64.
                 concat_cond = z_emit_n.replace(z_shape_n.feats)
                 z_pbr_n = None
             else:

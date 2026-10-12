@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Encode emission voxels to 32-ch latents using the TWO-STREAM emission VAE.
+"""Encode emission voxels to 32-ch latents using the pbr→emission VAE.
 
-The two-stream VAE (EmissionVaeTrainer) has a dedicated emission encoder with
+The pbr→emission VAE (EmissionVaeTrainer) has a dedicated emission encoder with
 in_channels=3, so the raw 3-ch emission SparseTensor goes in directly (no pack-as-PBR
 step; that was the deleted albedo->emission VAE's, whose encoder took 6 PBR channels).
 
-The encoder weights are the `models.encoder.*` entries of the two-stream VAE's
+The encoder weights are the `models.encoder.*` entries of the pbr→emission VAE's
 Lightning checkpoint (the trainable z_emission encoder; the frozen PBR encoder
 and the decoder are not needed to produce z_emission, which is what the DiT
 learns to generate). At inference the DiT's z_emission is decoded with
@@ -56,7 +56,7 @@ def main() -> None:
     ap.add_argument("--data_root", required=True,
                     help="dataset root (expects emission_voxels_<res>/ and will write emission_latents/<name>/)")
     ap.add_argument("--parquet", required=True, help="parquet with sha256 index")
-    ap.add_argument("--vae_ckpt", required=True, help="Lightning .ckpt path from the two-stream VAE training")
+    ap.add_argument("--vae_ckpt", required=True, help="Lightning .ckpt path from the pbr→emission VAE training")
     ap.add_argument("--vae_cfg", required=True, help="the config.yaml saved next to the ckpt")
     ap.add_argument("--latent_name", required=True,
                     help="subdir name under emission_latents/ (also used in DiT config)")
@@ -73,14 +73,14 @@ def main() -> None:
     save_dir = os.path.join(args.data_root, "emission_latents", args.latent_name)
     os.makedirs(save_dir, exist_ok=True)
 
-    print(f"Loading two-stream VAE encoder from {args.vae_ckpt}")
+    print(f"Loading pbr→emission VAE encoder from {args.vae_ckpt}")
     with open(args.vae_cfg) as f:
         vae_cfg = yaml.safe_load(f)
     models = build_models(vae_cfg["models"])
     encoder = models["encoder"]
     in_ch = vae_cfg["models"]["encoder"]["args"].get("in_channels")
     assert in_ch == 3, (
-        f"two-stream emission encoder must have in_channels=3 (raw emission); got {in_ch}. "
+        f"pbr→emission encoder must have in_channels=3 (raw emission); got {in_ch}. "
         f"(The 6-ch albedo->emission VAE and its encoder script were deleted in the refactor.)"
     )
     ckpt = torch.load(args.vae_ckpt, map_location="cpu", weights_only=False)

@@ -1,329 +1,171 @@
-![](assets/teaser.webp)
+# TRELLIS.2 for emission
 
-To prepare datasets locally, place data under `datasets/` (or pass an explicit dataset path/object via `--data_dir` during training).
+This repository adapts **TRELLIS.2** from PBR materials to **emission**. Given a 3D shape as sparse
+voxels with its PBR materials, and an image of the object, it generates the RGB emission of every
+surface voxel: a VAE encodes emission into a latent beside the shape's PBR latent, and a flow-matching
+transformer generates that latent. It is the TRELLIS.2-Emission baseline of LightgenBench
+([Hugging Face `3dlg-hcvc/LightgenBench`](https://huggingface.co/datasets/3dlg-hcvc/LightgenBench)).
 
-# Native and Compact Structured Latents for 3D Generation
+TRELLIS.2 and most of this code are the work of its authors:
 
-<a href="https://arxiv.org/abs/2512.14692"><img src="https://img.shields.io/badge/Paper-Arxiv-b31b1b.svg" alt="Paper"></a>
-<a href="https://huggingface.co/microsoft/TRELLIS.2-4B"><img src="https://img.shields.io/badge/Hugging%20Face-Model-yellow" alt="Hugging Face"></a>
-<a href="https://huggingface.co/spaces/microsoft/TRELLIS.2"><img src="https://img.shields.io/badge/Hugging%20Face-Demo-blueviolet"></a>
-<a href="https://microsoft.github.io/TRELLIS.2"><img src="https://img.shields.io/badge/Project-Website-blue" alt="Project Page"></a>
-<a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="License"></a>
+> **Native and Compact Structured Latents for 3D Generation** (tech report, 2025). Jianfeng Xiang,
+> Xiaoxue Chen, Sicheng Xu, Ruicheng Wang, Zelong Lv, Yu Deng, Hongyuan Zhu, Yue Dong, Hao Zhao,
+> Nicholas Jing Yuan, Jiaolong Yang. Microsoft.
+> [Paper](https://arxiv.org/abs/2512.14692) · [Project page](https://microsoft.github.io/TRELLIS.2) ·
+> [Code](https://github.com/microsoft/TRELLIS.2) · [Model](https://huggingface.co/microsoft/TRELLIS.2-4B)
 
-https://github.com/user-attachments/assets/63b43a7e-acc7-4c81-a900-6da450527d8f
+The training code is 3DLG-HCVC's port of TRELLIS.2 to PyTorch Lightning (branch `main` of this
+repository). If you use this code, please cite TRELLIS.2 ([below](#citation)).
 
-*(Compressed version due to GitHub size limits. See the full-quality video on our project page!)*
+## What differs from TRELLIS.2
 
-**TRELLIS.2** is a state-of-the-art large 3D generative model (4B parameters) designed for high-fidelity **image-to-3D** generation. It leverages a novel "field-free" sparse voxel structure termed **O-Voxel** to reconstruct and generate arbitrary 3D assets with complex topologies, sharp features, and full PBR materials.
+- **Emission VAE** (`trellis2/trainers/vae/emission_vae.py`, `EmissionVaeTrainer`). A trainable encoder
+  takes the voxels' emission (3 channels) to a 32-channel latent; TRELLIS.2's PBR encoder, frozen, takes
+  base color, metallic, roughness and alpha to another 32 channels. The decoder reads both latents and
+  outputs emission. Its weights start from TRELLIS.2's PBR VAE: `data_toolkit/init_emission_vae_from_pbr_vae.py`
+  builds that start point.
+- **Emission DiT.** TRELLIS.2's image-conditioned flow model and trainer, finetuned from its texture
+  model `slat_flow_imgshape2tex_dit_1_3B_512_bf16`. Each token carries the noisy emission latent, the
+  shape latent and the PBR latent (96 channels, so the input layer is trained anew) and attends to DINOv3
+  features of the object's image; the image is dropped 10% of the time for classifier-free guidance.
+- **Data.** 256³ voxels: LightgenBench's emission and PBR voxels, plus the shape and PBR latents of
+  TRELLIS.2's own encoders. Loaders: `trellis2/datasets/sparse_voxel_emission.py` (VAE) and
+  `structured_latent_emission.py` (DiT).
+- **Training callbacks** (the end of `trellis2/trainers/callbacks.py`): one wandb run across resumes, the best
+  checkpoint by `val/loss` plus `last.ckpt`, and a training log line every `i_log` steps.
 
+Our code sits in files of its own, except those four training callbacks, which follow upstream's in
+`trellis2/trainers/callbacks.py`. The other edits left in upstream's files are small: `train.py` and the
+`__init__.py` registries of `trellis2/{datasets,trainers}` register ours; `trellis2/trainers/basic.py` logs the learning rate, loads `.safetensors` and Hugging Face paths
+and skips previews for datasets without them; `ResumableSampler.set_epoch`
+(`trellis2/utils/data_utils.py`, missing upstream, so every epoch shuffled alike); an empty validation
+set for Lightning 2 (`trellis2/trainers/data.py`); DINOv3 in transformers 5.5
+(`flow_matching/mixins/image_conditioned.py`); and emission in O-Voxel and in
+`data_toolkit/{voxelize_pbr.py,blender_script/dump_pbr.py}`, including an O-Voxel fix: it sampled the
+emissive texture with the roughness texture's mipmaps; `data_toolkit/encode_pbr_latent.py` runs its encoder
+in fp32; `setup.sh` no longer calls `sudo apt`. All of them:
 
-## ✨ Features
-
-### 1. High Quality, Resolution & Efficiency
-Our 4B-parameter model generates high-resolution fully textured assets with exceptional fidelity and efficiency using vanilla DiTs. It utilizes a Sparse 3D VAE with 16× spatial downsampling to encode assets into a compact latent space.
-
-| Resolution | Total Time* | Breakdown (Shape + Mat) |
-| :--- | :--- | :--- |
-| **512³** | **~3s** | 2s + 1s |
-| **1024³** | **~17s** | 10s + 7s |
-| **1536³** | **~60s** | 35s + 25s |
-
-<small>*Tested on NVIDIA H100 GPU.</small>
-
-### 2. Arbitrary Topology Handling
-The **O-Voxel** representation breaks the limits of iso-surface fields. It robustly handles complex structures without lossy conversion:
-*   ✅ **Open Surfaces** (e.g., clothing, leaves)
-*   ✅ **Non-manifold Geometry**
-*   ✅ **Internal Enclosed Structures**
-
-### 3. Rich Texture Modeling
-Beyond basic colors, TRELLIS.2 models arbitrary surface attributes including **Base Color, Roughness, Metallic, and Opacity**, enabling photorealistic rendering and transparency support.
-
-### 4. Minimalist Processing
-Data processing is streamlined for instant conversions that are fully **rendering-free** and **optimization-free**.
-*   **< 10s** (Single CPU): Textured Mesh → O-Voxel
-*   **< 100ms** (CUDA): O-Voxel → Textured Mesh
-
-
-## 🗺️ Roadmap
-
-- [x] Paper release
-- [x] Release image-to-3D inference code
-- [x] Release pretrained checkpoints (4B)
-- [x] Hugging Face Spaces demo
-- [x] Release shape-conditioned texture generation inference code
-- [x] Release training code
-
-
-## 🛠️ Installation
-
-### Prerequisites
-- **System**: The code is currently tested only on **Linux**.
-- **Hardware**: An NVIDIA GPU with at least 24GB of memory is necessary. The code has been verified on NVIDIA A100 and H100 GPUs.  
-- **Software**:   
-  - The [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit-archive) is needed to compile certain packages. Recommended version is 12.4.  
-  - [Conda](https://docs.anaconda.com/miniconda/install/#quick-command-line-install) is recommended for managing dependencies.  
-  - Python version 3.8 or higher is required. 
-
-### Installation Steps
-1. Clone the repo:
-    ```sh
-    git clone -b main https://github.com/microsoft/TRELLIS.2.git --recursive
-    cd TRELLIS.2
-    ```
-
-2. Install the dependencies:
-    
-    **Before running the following command there are somethings to note:**
-    - By adding `--new-env`, a new conda environment named `trellis2` will be created. If you want to use an existing conda environment, please remove this flag.
-    - By default the `trellis2` environment will use pytorch 2.6.0 with CUDA 12.4. If you want to use a different version of CUDA, you can remove the `--new-env` flag and manually install the required dependencies. Refer to [PyTorch](https://pytorch.org/get-started/previous-versions/) for the installation command.
-    - If you have multiple CUDA Toolkit versions installed, `CUDA_HOME` should be set to the correct version before running the command. For example, if you have CUDA Toolkit 12.4 and 13.0 installed, you can run `export CUDA_HOME=/usr/local/cuda-12.4` before running the command.
-    - By default, the code uses the `flash-attn` backend for attention. For GPUs do not support `flash-attn` (e.g., NVIDIA V100), you can install `xformers` manually and set the `ATTN_BACKEND` environment variable to `xformers` before running the code. See the [Minimal Example](#minimal-example) for more details.
-    - The installation may take a while due to the large number of dependencies. Please be patient. If you encounter any issues, you can try to install the dependencies one by one, specifying one flag at a time.
-    - If you encounter any issues during the installation, feel free to open an issue or contact us.
-    
-    Create a new conda environment named `trellis2` and install the dependencies:
-    ```sh
-    . ./setup.sh --new-env --basic --flash-attn --nvdiffrast --nvdiffrec --cumesh --o-voxel --flexgemm
-    ```
-    The detailed usage of `setup.sh` can be found by running `. ./setup.sh --help`.
-    ```sh
-    Usage: setup.sh [OPTIONS]
-    Options:
-        -h, --help              Display this help message
-        --new-env               Create a new conda environment
-        --basic                 Install basic dependencies
-        --flash-attn            Install flash-attention
-        --cumesh                Install cumesh
-        --o-voxel               Install o-voxel
-        --flexgemm              Install flexgemm
-        --nvdiffrast            Install nvdiffrast
-        --nvdiffrec             Install nvdiffrec
-    ```
-
-## 📦 Pretrained Weights
-
-The pretrained model **TRELLIS.2-4B** is available on Hugging Face. Please refer to the model card there for more details.
-
-| Model | Parameters | Resolution | Link |
-| :--- | :--- | :--- | :--- |
-| **TRELLIS.2-4B** | 4 Billion | 512³ - 1536³ | [Hugging Face](https://huggingface.co/microsoft/TRELLIS.2-4B) |
-
-
-## 🚀 Usage
-
-### 1. Image to 3D Generation
-
-#### Minimal Example
-
-Here is an [example](example.py) of how to use the pretrained models for 3D asset generation.
-
-```python
-import os
-os.environ['OPENCV_IO_ENABLE_OPENEXR'] = '1'
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"  # Can save GPU memory
-import cv2
-import imageio
-from PIL import Image
-import torch
-from trellis2.pipelines import Trellis2ImageTo3DPipeline
-from trellis2.utils import render_utils
-from trellis2.renderers import EnvMap
-import o_voxel
-
-# 1. Setup Environment Map
-envmap = EnvMap(torch.tensor(
-    cv2.cvtColor(cv2.imread('assets/hdri/forest.exr', cv2.IMREAD_UNCHANGED), cv2.COLOR_BGR2RGB),
-    dtype=torch.float32, device='cuda'
-))
-
-# 2. Load Pipeline
-pipeline = Trellis2ImageTo3DPipeline.from_pretrained("microsoft/TRELLIS.2-4B")
-pipeline.cuda()
-
-# 3. Load Image & Run
-image = Image.open("assets/example_image/T.png")
-mesh = pipeline.run(image)[0]
-mesh.simplify(16777216) # nvdiffrast limit
-
-# 4. Render Video
-video = render_utils.make_pbr_vis_frames(render_utils.render_video(mesh, envmap=envmap))
-imageio.mimsave("sample.mp4", video, fps=15)
-
-# 5. Export to GLB
-glb = o_voxel.postprocess.to_glb(
-    vertices            =   mesh.vertices,
-    faces               =   mesh.faces,
-    attr_volume         =   mesh.attrs,
-    coords              =   mesh.coords,
-    attr_layout         =   mesh.layout,
-    voxel_size          =   mesh.voxel_size,
-    aabb                =   [[-0.5, -0.5, -0.5], [0.5, 0.5, 0.5]],
-    decimation_target   =   1000000,
-    texture_size        =   4096,
-    remesh              =   True,
-    remesh_band         =   1,
-    remesh_project      =   0,
-    verbose             =   True
-)
-glb.export("sample.glb", extension_webp=True)
+```bash
+git diff --diff-filter=M main -- train.py trellis2/ o-voxel/ data_toolkit/ setup.sh
 ```
 
-Upon execution, the script generates the following files:
- - `sample.mp4`: A video visualizing the generated 3D asset with PBR materials and environmental lighting.
- - `sample.glb`: The extracted PBR-ready 3D asset in GLB format.
+## Setup
 
-**Note:** The `.glb` file is exported in `OPAQUE` mode by default. Although the alpha channel is preserved within the texture map, it is not active initially. To enable transparency, import the asset into your 3D software and manually connect the texture's alpha channel to the material's opacity or alpha input.
-
-#### Web Demo
-
-[app.py](app.py) provides a simple web demo for image to 3D asset generation. you can run the demo with the following command:
-```sh
-python app.py
+```bash
+. ./setup.sh --new-env --basic --flash-attn --nvdiffrast --nvdiffrec --cumesh --o-voxel --flexgemm
+pip install lightning==2.6.1 pyarrow wandb
 ```
 
-Then, you can access the demo at the address shown in the terminal.
+`setup.sh` is TRELLIS.2's (Linux, CUDA Toolkit 12.4, conda env `trellis2`; `. ./setup.sh --help` lists
+the parts). Our runs used torch 2.6.0 + CUDA 12.4, transformers 5.1.0 and flash-attn 2.7.3 (RTX 4090:
+data, inference) and torch 2.9.1 + CUDA 12.6, transformers 5.3.0 and flash-attn 2.8.3 (H100: training),
+both with lightning 2.6.1. FlexGEMM and O-Voxel are compiled for the GPU they are built on.
 
-### 2. PBR Texture Generation
+On first use the code downloads `microsoft/TRELLIS.2-4B` (the PBR, shape and texture models) and
+`facebook/dinov3-vitl16-pretrain-lvd1689m` from Hugging Face. DINOv3 is gated: request access on its
+page first, and log in (`huggingface-cli login`). Run every command below from the repository root.
 
-Please refer to the [example_texturing.py](example_texturing.py) for an example of how to generate PBR textures for a given 3D shape. Also, you can use the [app_texturing.py](app_texturing.py) to run a web demo for PBR texture generation.
+## Data
 
+LightgenBench is gated too: accept its terms on the dataset page.
 
-## 🏋️ Training
-
-We provide the full training codebase, enabling users to train **TRELLIS.2** from scratch or fine-tune it on custom datasets.
-
-### 1. Data Preparation
-
-Before training, raw 3D assets must be converted into the **O-Voxel** representation. This process includes mesh conversion, compact structured latent generation, and metadata preparation.
-
-> 📂 **Please refer to [data_toolkit/README.md](data_toolkit/README.md) for detailed instructions on data preprocessing and dataset organization.**
-
-### 2. Running Training
-
-Training is managed through the `train.py` script, which accepts multiple command-line arguments to configure experiments.
-The training launcher in this release expects YAML config files (`.yaml` or `.yml`).
-
-* `--config`: Path to the experiment configuration file.
-* `--output_dir`: Directory for training outputs.
-* `--load_dir`: Directory to load checkpoints from (defaults to `output_dir`).
-* `--ckpt`: Checkpoint step to resume from (defaults to the latest).
-* `--data_dir`: Dataset path or a JSON string specifying dataset locations.
-* `--auto_retry`: Number of automatic retries upon failure.
-* `--tryrun`: Perform a dry run without actual training.
-* `--num_nodes`: Number of nodes for distributed training.
-* `--node_rank`: Rank of the current node.
-* `--num_gpus`: Number of GPUs per node (defaults to all available GPUs).
-* `--master_addr`: Master node address for distributed training.
-* `--master_port`: Port for distributed training communication.
-
-
-### SC-VAE Training
-
-
-To train the shape SC-VAE, run:
-
-```sh
-python train.py \
-  --config configs/scvae/shape_vae_next_dc_f16c32_fp16.yaml \
-  --output_dir results/shape_vae_next_dc_f16c32_fp16 \
-  --data_dir "{\"ObjaverseXL_sketchfab\": {\"base\": \"datasets/ObjaverseXL_sketchfab\", \"mesh_dump\": \"datasets/ObjaverseXL_sketchfab/mesh_dumps\", \"dual_grid\": \"datasets/ObjaverseXL_sketchfab/dual_grid_256\", \"asset_stats\": \"datasets/ObjaverseXL_sketchfab/asset_stats\"}}"
+```bash
+bash script/lightgenbench/prepare_lightgenbench.sh <download_dir> <data_root>
 ```
 
-This command trains the shape SC-VAE on the **Objaverse-XL** dataset using the `shape_vae_next_dc_f16c32_fp16.yaml` configuration. Training outputs will be saved to `results/shape_vae_next_dc_f16c32_fp16`.
+This downloads `splits.json`, `checksums.sha256` and the voxel and thumbnail tars (about 14 GB), checks
+`splits.json` against the released split and every tar against `checksums.sha256`, unpacks them into
+`<data_root>/{emission_voxels_256,pbr_voxels_256,thumbnails}/` (15 GB) and writes the two index files the
+loaders read: `df_lightgenbench.parquet` (the shapes) and `data_splits_lightgenbench.json` (row numbers of
+the 36,426 train / 200 val / 200 test shapes).
 
-The dataset is specified as a JSON string, where each dataset entry includes:
+The DiT also reads each shape's shape and PBR latents, which the dataset does not carry:
 
-* `base`: Root directory of the dataset.
-* `mesh_dump`: Directory containing preprocessed mesh dumps.
-* `dual_grid`: Directory with precomputed dual-grid representations.
-* `asset_stats`: Directory containing precomputed asset statistics.
-
-To fine-tune the model at a higher resolution, use the `shape_vae_next_dc_f16c32_fp16_ft_512.yaml` configuration. Remember to update the `finetune_ckpt` field and adjust the dataset paths accordingly.
-
-
-To train the texture SC-VAE, run:
-
-```sh
-python train.py \
-  --config configs/scvae/tex_vae_next_dc_f16c32_fp16.yaml \
-  --output_dir results/tex_vae_next_dc_f16c32_fp16 \
-  --data_dir "{\"ObjaverseXL_sketchfab\": {\"base\": \"datasets/ObjaverseXL_sketchfab\", \"pbr_dump\": \"datasets/ObjaverseXL_sketchfab/pbr_dumps\", \"pbr_voxel\": \"datasets/ObjaverseXL_sketchfab/pbr_voxels_256\", \"asset_stats\": \"datasets/ObjaverseXL_sketchfab/asset_stats\"}}"
+```bash
+TEXVERSE_1K=<dir> bash script/lightgenbench/run_chain.sh latents <data_root>
 ```
 
+`<dir>` holds the shapes' source files from
+[TexVerse-1K](https://huggingface.co/datasets/YiboZhang2001/TexVerse-1K), as
+`glbs/glbs_1k/<group>/<uuid>_1024.glb`. The stage builds each shape's dual grid
+(`data_toolkit/dual_grid_from_glb.py --loader lightgenbench`: the mesh loader LightgenBench's data preparation
+uses, from the lightgen repository that holds this one, or `LIGHTGEN_REPO=<dir>`), checks that its voxels are those of the shape's
+`pbr_voxels_256`, and encodes both latents with TRELLIS.2's encoders. Checked against our release on 12
+shapes: the dual grids are byte-identical, and the latents differ at float level (a mean difference of
+about 1e-4 of their spread, on an RTX 4090 and an L40S alike); predictions from them moved voxel IoU by
+under 5e-4 on the two test shapes among them.
+A dual grid took about a second per shape on our workstation; `WORKERS` (default 8) processes run side by side.
 
-### Flow Model Training
+## Training
 
-To train the sparse structure flow model, run:
-
-```sh
-python train.py \
-  --config configs/gen/ss_flow_img_dit_1_3B_64_bf16.yaml \
-  --output_dir results/ss_flow_img_dit_1_3B_64_bf16 \
-  --data_dir "{\"ObjaverseXL_sketchfab\": {\"base\": \"datasets/ObjaverseXL_sketchfab\", \"ss_latent\": \"datasets/ObjaverseXL_sketchfab/ss_latents/ss_enc_conv3d_16l8_fp16_64\", \"render_cond\": \"datasets/ObjaverseXL_sketchfab/renders_cond\"}}"
+```bash
+bash script/lightgenbench/run_chain.sh vae <data_root>
+VAE_CKPT=outputs/emission_vae_pbr2emission_lightgenbench_v1/ckpts/<file>.ckpt \
+    bash script/lightgenbench/run_chain.sh encode <data_root>
+bash script/lightgenbench/run_chain.sh dit <data_root>
 ```
 
-This command trains the sparse-structure flow model on the **Objaverse-XL** dataset using the specified configuration file. Outputs are saved to `results/ss_flow_img_dit_1_3B_64_bf16`.
+This is the recipe of our release run, on 4 × H100 80 GB: the VAE (`configs/scvae/emission_vae_pbr2emission_lightgenbench_v1.yaml`)
+with 16 shapes per GPU (global batch 64; the config's own 32 is not what ran), 35,800 steps; the
+DiT (`configs/gen/emission_dit_pbr2emission_lightgenbench_v1.yaml`) with 8 per GPU (global 32), 50,000
+steps. `run_chain.sh` refuses another global batch unless `ANY_BATCH=1`; its header lists the other
+settings (`NUM_GPUS`, `BS`, `MAX_STEPS`, `OUTPUTS`, ...). Each stage tees its output to
+`log/<time>-lightgenbench_<stage>.log`; the two training stages also log to wandb when you are logged in
+(project `LightGen`).
 
-The dataset configuration includes:
+- **Encode** with the VAE checkpoint of lowest `val/loss` (ours: `step0035400-0.0036.ckpt`); nothing picks
+  one for you. It writes the emission latents, their `normalization_stats.json` and `vae_ckpt.txt`; it keeps
+  latents already there and refuses a folder whose `vae_ckpt.txt` names another checkpoint file (by path
+  and size, not by content: do not overwrite a checkpoint in place).
+- **The DiT config holds those statistics** (`dataset.args.emission_normalization`); ours are of our
+  VAE's latents. After a VAE of your own, copy the mean and std of your `normalization_stats.json` there:
+  the `dit` stage stops if they disagree, since wrong statistics mis-scale every input without an error.
+- **A first launch starts in an empty run directory.** Both models start from pretrained weights, and a
+  run that resumes a checkpoint skips that load; `run_chain.sh` refuses a run directory with checkpoints
+  unless `RESUME=1`, which continues an interrupted run.
+- **Checkpoints pass through `$TMPDIR`** on their way to disk (13 GB for the VAE, 21 GB for the DiT), and
+  Python puts Unix sockets there, whose paths must stay short: with a small `/tmp`, set
+  `CHAIN_TMPDIR=<a short path on a disk with room>`. The stage checks before it trains.
+- The DiT's training does not repeat exactly: its sparse attention runs flash-attention's backward
+  without the deterministic option.
 
-* `base`: Root dataset directory.
-* `ss_latent`: Directory containing precomputed sparse-structure latents.
-* `render_cond`: Directory containing conditional rendering images.
+## Inference on the test split
 
-
-The second- and third-stage flow models for shape and texture generation can be trained using the following configurations:
-
-* Shape flow: `slat_flow_img2shape_dit_1_3B_512_bf16.yaml`
-* Texture flow: `slat_flow_imgshape2tex_dit_1_3B_512_bf16.yaml`
-
-Example commands:
-
-```sh
-# Shape flow model
-python train.py \
-  --config configs/gen/slat_flow_img2shape_dit_1_3B_512_bf16.yaml \
-  --output_dir results/slat_flow_img2shape_dit_1_3B_512_bf16 \
-  --data_dir "{\"ObjaverseXL_sketchfab\": {\"base\": \"datasets/ObjaverseXL_sketchfab\", \"shape_latent\": \"datasets/ObjaverseXL_sketchfab/shape_latents/shape_enc_next_dc_f16c32_fp16_512\", \"render_cond\": \"datasets/ObjaverseXL_sketchfab/renders_cond\"}}"
-
-# Texture flow model
-python train.py \
-  --config configs/gen/slat_flow_imgshape2tex_dit_1_3B_512_bf16.yaml \
-  --output_dir results/slat_flow_imgshape2tex_dit_1_3B_512_bf16 \
-  --data_dir "{\"ObjaverseXL_sketchfab\": {\"base\": \"datasets/ObjaverseXL_sketchfab\", \"shape_latent\": \"datasets/ObjaverseXL_sketchfab/shape_latents/shape_enc_next_dc_f16c32_fp16_512\", \"pbr_latent\": \"datasets/ObjaverseXL_sketchfab/pbr_latents/tex_enc_next_dc_f16c32_fp16_512\", \"render_cond\": \"datasets/ObjaverseXL_sketchfab/renders_cond\"}}"
+```bash
+VAE_CKPT=outputs/emission_vae_pbr2emission_lightgenbench_v1/ckpts/<file>.ckpt \
+DIT_CKPT=outputs/emission_dit_pbr2emission_lightgenbench_v1/ckpts/last.ckpt \
+    bash script/lightgenbench/run_chain.sh predict <data_root>
 ```
 
-Higher-resolution fine-tuning can be performed by updating the `finetune_ckpt` field in the following configuration files and adjusting the dataset paths accordingly:
+A DiT works only with the VAE whose latents it was trained on: give the VAE checkpoint the encode used.
+We report the DiT's last checkpoint (step 50,000). This writes `outputs/predict_test_seed0/pred_voxels/<uuid>.npz`
+for the 200 test shapes, with `coords` (the voxels, at 256³), `pred` (the generated emission, RGB in
+[0, 1]), `gt_emission` (the dataset's emission) and `gt_recon` (the VAE's reconstruction of it), using 50
+sampling steps and guidance scale 3.0. Each shape's noise comes from its uuid and `SEED` (default 0), not
+from its place in the list; on our RTX 4090s a rerun gave the same bytes. A GPU with 24 GB is enough.
+The benchmark's own scoring, on points sampled on the mesh surface, is not part of this repository.
 
-* `slat_flow_img2shape_dit_1_3B_512_bf16_ft1024.yaml`
-* `slat_flow_imgshape2tex_dit_1_3B_512_bf16_ft1024.yaml`
+## Repository
 
+| path | contents |
+|---|---|
+| `configs/` | the release VAE and DiT configs, and TRELLIS.2's own |
+| `trellis2/` | models, datasets, trainers (TRELLIS.2's package; ours in files of their own, our training callbacks at the end of `trainers/callbacks.py`) |
+| `train.py` | training entry point (`--config`, `--output_dir`, `--override key=value`) |
+| `script/lightgenbench/` | `prepare_lightgenbench.sh`, `run_chain.sh`: everything above |
+| `data_toolkit/` | TRELLIS.2's data scripts, and ours: the VAE start point, the encoders, the predictor, the index, `eval_vae_recon.py` |
+| `vis/` | interactive 3D viewers of VAE reconstructions and DiT samples (one HTML page, a menu of shapes) |
+| `o-voxel/` | TRELLIS.2's voxel library (with emission) |
+| `script/internal/` | our cluster launchers and regression checks; not needed to use the code |
+| `example.py`, `example_texturing.py`, `app.py`, `app_texturing.py` | TRELLIS.2's image-to-3D and texturing demos, unchanged ([their usage](https://github.com/microsoft/TRELLIS.2#-usage)) |
 
-## 🧩 Related Packages
+## License
 
-TRELLIS.2 is built upon several specialized high-performance packages developed by our team:
+TRELLIS.2 is released under the [MIT License](LICENSE). Some dependencies have their own terms: [nvdiffrast](https://github.com/NVlabs/nvdiffrast/blob/main/LICENSE.txt) and
+[nvdiffrec](https://github.com/NVlabs/nvdiffrec/blob/main/LICENSE.txt). LightgenBench shapes keep the
+licenses of their source models (see the dataset card).
 
-*   **[O-Voxel](o-voxel):** 
-    Core library handling the logic for converting between textured meshes and the O-Voxel representation, ensuring instant bidirectional transformation.
-*   **[FlexGEMM](https://github.com/JeffreyXiang/FlexGEMM):** 
-    Efficient sparse convolution implementation based on Triton, enabling rapid processing of sparse voxel structures.
-*   **[CuMesh](https://github.com/JeffreyXiang/CuMesh):** 
-    CUDA-accelerated mesh utilities used for high-speed post-processing, remeshing, decimation, and UV-unwrapping.
-
-
-## ⚖️ License
-
-This model and code are released under the **[MIT License](LICENSE)**.
-
-Please note that certain dependencies operate under separate license terms:
-
-- [**nvdiffrast**](https://github.com/NVlabs/nvdiffrast): Utilized for rendering generated 3D assets. This package is governed by its own [License](https://github.com/NVlabs/nvdiffrast/blob/main/LICENSE.txt).
-
-- [**nvdiffrec**](https://github.com/NVlabs/nvdiffrec): Implements the split-sum renderer for PBR materials. This package is governed by its own [License](https://github.com/NVlabs/nvdiffrec/blob/main/LICENSE.txt).
-
-## 📚 Citation
-
-If you find this model useful for your research, please cite our work:
+## Citation
 
 ```bibtex
 @article{

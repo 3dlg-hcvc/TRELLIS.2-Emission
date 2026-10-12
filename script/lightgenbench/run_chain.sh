@@ -131,6 +131,15 @@ case "$STAGE" in
   vae)
     need "$ROOT/emission_voxels_256" vxz; need "$ROOT/pbr_voxels_256" vxz
     CFG=configs/scvae/$VAE_NAME.yaml
+    # The bake reads TRELLIS.2's PBR VAE from the Hugging Face cache only: fetch it (offline: the cache).
+    python - <<'PY' || fail "TRELLIS.2's PBR VAE is neither downloadable nor in the Hugging Face cache"
+import os
+from huggingface_hub import hf_hub_download
+for name in ("tex_enc_next_dc_f16c32_fp16", "tex_dec_next_dc_f16c32_fp16"):
+    for ext in (".json", ".safetensors"):
+        hf_hub_download("microsoft/TRELLIS.2-4B", f"ckpts/{name}{ext}")
+os._exit(0)
+PY
     # The VAE's init (gitignored, seconds); --verify-config stops a config that would drop the derived tensors.
     python -u data_toolkit/init_emission_vae_from_pbr_vae.py --out data/ckpt_init/pbr2emission_v3 --verify-config "$CFG"
     train "$CFG" "$VAE_NAME" "${BS:-16}" 64 15

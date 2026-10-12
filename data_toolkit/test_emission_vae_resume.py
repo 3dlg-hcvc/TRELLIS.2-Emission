@@ -1,4 +1,4 @@
-"""Regression test for the two-stream EmissionVaeTrainer checkpoint-resume crash.
+"""Regression test for the pbr→emission EmissionVaeTrainer checkpoint-resume crash.
 
 Bug (see memory project_twostream_vae_resume_crash): the frozen `_pbr_encoder`
 is lazily registered on the first training step, so it gets baked into every

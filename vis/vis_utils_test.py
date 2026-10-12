@@ -146,7 +146,7 @@ def test_load_vae_from_handle_smoke():
     )
     coords, emit, _ = read_emission_voxel(recs[0].emission_voxel_path)
 
-    # Load PBR features (needed for the two-stream trainer; harmless otherwise).
+    # Load PBR features (needed for the pbr→emission trainer; harmless otherwise).
     pbr_path = recs[0].pbr_voxel_path
     pbr_feats = None
     if os.path.exists(pbr_path):

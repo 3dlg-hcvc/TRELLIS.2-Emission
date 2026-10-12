@@ -360,8 +360,8 @@ def load_vae_from_handle(handle: "ExperimentHandle", device: str = "cuda"):
     callable that produces the reconstructed [-1, 1] emission features.
 
     Branches on ``handle.trainer_name``:
-      * ``EmissionVaeTrainer``            — two-stream concat (needs pbr_feats).
-      * ``EmissionPbrFinetuneTrainer``    — channel hijack (ignores pbr_feats).
+      * ``EmissionVaeTrainer``            — pbr→emission (needs pbr_feats).
+      * ``EmissionPbrFinetuneTrainer``    — albedo→emission (ignores pbr_feats).
 
     Any other trainer raises a RuntimeError.
     """
@@ -400,7 +400,7 @@ def load_vae_from_handle(handle: "ExperimentHandle", device: str = "cuda"):
     elif trainer == "EmissionPbrFinetuneTrainer":
         @torch.no_grad()
         def decode_emission(coords, emit_feats, pbr_feats):
-            # Ignore pbr_feats — channel-hijack packs emission as base_color.
+            # Ignore pbr_feats — albedo→emission packs emission as base_color.
             packed = _pack_emission_as_pbr(emit_feats)
             bc = torch.zeros(coords.shape[0], 1, dtype=coords.dtype)
             x = sp.SparseTensor(packed, torch.cat([bc, coords], dim=-1)).to(device)

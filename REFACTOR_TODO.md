@@ -24,7 +24,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 13. The viewers in `vis/`
 - [x] 14. Environment files
 - [x] 15. Release layer: generic entry points for LightgenBench users
-- [ ] 16. Docs
+- [x] 16. Docs
 - [ ] 17. Merge into `lightgen` (D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
 - [ ] 18. Cut-over to the new code (D8)
 
@@ -390,7 +390,7 @@ subset20 20/0/0 byte-identical; tests 25 passed, 2 failed (unchanged).
   `script/star2/emission_dit_pbr2emission_74k_v3_agentic_venus19.sh`,
   `script/star2/dit_agentic_snapshot_last_venus19.sbatch`), `script/alliance/emission_dit_74k.sh`, all of `script/vulcan/`,
   the standby launchers (`*_v3_agentic_venus05.sh`, `script/fir/emission_dit_pbr2emission_74k_v3_agentic.sh`),
-  the albedo→emission, two-stream, `_v2`, `_v3`, `nonzero`, 1k, 10-sample and Blender-prep launchers.
+  the albedo→emission, the older pbr→emission, `_v2`, `_v3`, `nonzero`, 1k, 10-sample and Blender-prep launchers.
 
 **Instructions:**
 
@@ -644,7 +644,8 @@ Code unchanged (AST equal apart from docstrings), which replaces the HTML compar
 **Instructions:**
 
 **Result:** An "Environments that run this code" table in `CLAUDE.md`: the five envs, their versions (the workstation and Solar envs read
-directly, the Alliance venv from its requirements file) and what ran in each, plus what every env needs. No env file changed; step 16 moves the table into the README.
+directly, the Alliance venv from its requirements file) and what ran in each, plus what every env needs. No env file changed. (Step 16 keeps the
+table in `CLAUDE.md`, it is internal; the README gives the versions our runs used.)
 
 ### 15. Release layer: generic entry points for LightgenBench users
 
@@ -694,14 +695,21 @@ to the release gate, VAE (4090) and DiT (L40S) stages train and save. The intern
 
 One doc of record, keeping upstream's attribution and citation (`README.md`).
 
-- [ ] Inside: `README.md` (upstream's), `CLAUDE.md` (341 lines), `data_toolkit/README.md`; the
+- [x] Inside: `README.md` (upstream's), `CLAUDE.md` (341 lines), `data_toolkit/README.md`; the
   checkpoint pairing (each DiT with its VAE); the findings that still apply. The restructure branch's
-  `TRELLIS2_EMISSION.md` is a source for content, not taken whole.
-- [ ] The release commands (step 15) and the inference command on the release test split.
+  `TRELLIS2_EMISSION.md` is a source for content, not taken whole. Done: `README.md` is ours, keeping
+  TRELLIS.2's attribution, license and citation and linking its usage; `CLAUDE.md` 351 → 142 lines (envs,
+  runs of record and their pairing, the gate, a source map, ten traps); `data_toolkit/README.md` is
+  upstream's and stays. From `TRELLIS2_EMISSION.md`: the checkpoint-name finding and the O-Voxel mip fix.
+  Also: the banned shorthand left in comments, a docstring, a help text,
+  a print and an error message of 7 files became the display names (code unchanged, AST-checked).
+- [x] The release commands (step 15) and the inference command on the release test split.
 
 **Instructions:**
 
-**Result:**
+**Result:** `README.md` is the doc of record (TRELLIS.2's attribution, license and citation kept); `CLAUDE.md` trimmed; banned shorthand
+gone from 7 files (text only, AST-checked). Codex's drift review: 8 findings fixed, among them the `vae` stage now fetches
+TRELLIS.2's PBR VAE before the bake (a fresh cache failed). Tests 25 passed, 2 known failures.
 
 ### 17. Merge into `lightgen` (D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
 
@@ -778,8 +786,8 @@ One doc of record, keeping upstream's attribution and citation (`README.md`).
 - [ ] **Code no run reaches** (step 9): `emission_helpers._read_vxz_as_sparse`.
 - [ ] **`dual_grid_from_glb.py`'s own loader** (step 15): float32 normalization and the first node of each
   mesh only; the release grids need `--loader lightgenbench`. Make that the default, or port the loader here?
-- [ ] **The end-of-training snapshot** asks for 16 samples and crashes in `torch.cat` with fewer training
-  shapes (step 15's 8-shape test; `val_num_samples` works around it).
+- [ ] **The DiT's end-of-training snapshot** asks for 16 samples and crashes in `torch.cat` with fewer
+  training shapes (step 15's 8-shape test; `val_num_samples` works around it).
 - [ ] **`lightgenbench_stage.sh`**: the dataset is gated since 2026-10-06; the launcher reads no token.
 - [ ] **Checks that do not exist yet**: the DiT trainer under coverage, multi-GPU, gradient accumulation,
   wandb online.

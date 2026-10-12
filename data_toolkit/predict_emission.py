@@ -147,7 +147,7 @@ def main():
     dit.to(DEVICE).eval()
     sampler = FlowEulerCfgSampler(sigma_min=dit_cfg["trainer"]["args"]["sigma_min"])
 
-    # ---- two-stream VAE encoder + decoder (no separate pbr_encoder model) ----
+    # ---- pbr→emission VAE encoder + decoder (no separate pbr_encoder model) ----
     p(f"Loading VAE: {args.vae_ckpt}")
     vae = build_models(yaml.safe_load(open(vae_cfg_path))["models"])
     enc, dec = vae["encoder"], vae["decoder"]
