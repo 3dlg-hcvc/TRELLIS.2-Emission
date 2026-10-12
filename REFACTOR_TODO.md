@@ -18,7 +18,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 7. Check setup: inference gate, VAE table, encode check, training check, noise baselines (no code change)
 - [x] 8. Our dataset and trainer files beside upstream's (D13)
 - [x] 9. Coverage run (no code change)
-- [ ] 10. The predictor `predict_emission_voxels_twostream.py`
+- [x] 10. The predictor `predict_emission.py`
 - [ ] 11. The chain scripts in `data_toolkit/`
 - [ ] 12. Our hooks out of upstream's `train.py`, `basic.py`, `callbacks.py` (D13)
 - [ ] 13. The viewers in `vis/`
@@ -93,7 +93,7 @@ Each DiT decodes only with the VAE that encoded its latents (the paper's latents
 
 The inference gate: the paper's command, which `../evaluation/newdata_eval/sweeps/job_dit.sh test
 last-step0050000.ckpt 0` builds, with its own `--out_dir` (`job_dit.sh` itself writes into the
-published directory): `data_toolkit/predict_emission_voxels_twostream.py`, seed 0, `--guidance 3.0
+published directory): `data_toolkit/predict_emission.py`, seed 0, `--guidance 3.0
 --steps 50`, inputs `../evaluation/newdata_eval/out/data_root`, the `trellis2` env, the 4090 lock
 `/local-scratch/localhome/dya78/.locks/gpu0-rtx4090.lock`. The scripts are in `script/internal/gate/`
 (step 1, from the September restructure's `outputs/restructure_gate/`); check outputs go to
@@ -145,7 +145,7 @@ Step 7 adds the numeric comparison.
    (`../evaluation/pointsampled/viz/make_viz_data.py:15`), and the layout
    `outputs/<run>/ckpts/<file>.ckpt` with `config.yaml` (and `config.workstation.yaml`) one level up
    (`job_dit.sh:12,23,27-28`, the jupiter mirror).
-3. `data_toolkit/predict_emission_voxels_twostream.py`: its path and flags (`--dit_ckpt --dit_cfg
+3. `data_toolkit/predict_emission.py` (`predict_emission_voxels_twostream.py` until step 10): its flags (`--dit_ckpt --dit_cfg
    --vae_ckpt --vae_cfg --data_root --thumbnail_dir --shas --n all --guidance --steps --seed
    --pred_only --out_dir`, defaults `--pbr_latent_name`, `--shape_latent_name`, `--resolution 256`).
    Callers: `job_dit.sh:26-30`, `sweeps/star2/dit_worker.sbatch:368-373`,
@@ -157,7 +157,7 @@ Step 7 adds the numeric comparison.
 4. Output `<out>/pred_voxels/<sha>.npz`: `coords` int32 [N, 3], `pred` float32 [N, 3] in [0, 1],
    plus `gt_recon` and `gt_emission` unless `--pred_only`. Readers: `../evaluation/pointsampled/pipeline.py:290`,
    `score_dit_v2.sh:88-100`, `build_model_gallery.py`, `make_pred_dir.py:19`, `make_viz_data.py`.
-5. `sample_seed` (`predict_emission_voxels_twostream.py:57`): identical to
+5. `sample_seed` (`predict_emission.py:57`): identical to
    `../evaluation/newdata_eval/seedutil.py:24-26` (values pinned by `tests/test_seedutil.py`), and the
    global `torch.manual_seed` call it feeds.
 6. Run-config keys read from outside: `dataset.args.{emission,shape,pbr}_normalization.{mean,std}`
@@ -202,7 +202,8 @@ Step 7 adds the numeric comparison.
     `../data_processing/data_preparation/voxels.py:250-279` and `run.py:147-161`,
     `data_toolkit/build_lightgenbench_index.py`, `data_toolkit/encode_emission_twostream_dataset.py`,
     `script/alliance/lightgenbench_unpack.sh`.
-12. The chain script names the release launcher calls (`script/alliance/lightgenbench_v1.sh:141,171,176,227`):
+12. The chain script names the release launcher calls (`script/internal/alliance/lightgenbench_v1.sh:141,171,176,227`;
+    `script/alliance/` until step 5b):
     `data_toolkit/encode_emission_twostream_dataset.py`, `data_toolkit/build_lightgenbench_index.py`,
     `data_toolkit/bake_pbr2emission_v3_init.py`, `train.py`.
 13. The `[ckpt-timing] SAVE_START step=N epoch=E t=T` and `RESUME_AFTER_SAVE step=N gap=Gs t=T`
@@ -332,7 +333,7 @@ Not used by the paper or the release run. The 9 live files that hardcode the old
 - [x] `vis/vis_emission_vae.py`.
 - [x] Kept in `data_toolkit/` (ours): `bake_pbr2emission_v3_init.py`, `dual_grid_from_glb.py`,
   `encode_shape_from_dual_grid.py`, `encode_pbr_from_voxels.py`, `encode_emission_twostream_dataset.py`,
-  `predict_emission_voxels_twostream.py`, `eval_vae_recon.py`, `build_lightgenbench_index.py`, and the
+  `predict_emission.py`, `eval_vae_recon.py`, `build_lightgenbench_index.py`, and the
   tests `test_eval_vae_recon.py`, `test_emission_vae_resume.py`, `test_checkpoint_cadence.py`.
 
 Parent docs that cite a deleted file go to step 17's list (`docs/baselines/trellis2.md:8`,
@@ -527,19 +528,24 @@ paths, the elastic memory controller's branches, or `--pred_only`.
 Never ran in our code: `EmissionVaeTrainer.prepare_dataloader`, `emission_helpers._read_vxz_as_sparse`, the predictor's
 parquet/split selection; the DiT trainer, multi-GPU, gradient accumulation and wandb are not covered here.
 
-### 10. The predictor `predict_emission_voxels_twostream.py`
+### 10. The predictor `predict_emission.py`
 
-Keep its path, flags, output, `sample_seed` and the strict prefix-filtered load (Keep stable 3–5).
-No rename: the September restructure renamed it to `predict_emission_voxels.py`, the name of the
-different script step 2 deletes, which the parent's docs still cite.
+Keep its flags, output, `sample_seed` and the strict prefix-filtered load (Keep stable 3–5); its path
+changed at review (below).
+Not `predict_emission_voxels.py`, the September restructure's name for it: that is the name of the
+different script step 2 deletes, which the parent's docs still cite. At review (Dongchen, 2026-10-12) it
+became `predict_emission.py`; the gate scripts take either name, and the parent's four callers change
+with the merge (step 17).
 
-- [ ] Hardcoded defaults and paths; the `--split_json` default; output-only code. Exact lines after
-  step 9.
-- [ ] Comments naming `predict_emission_voxels.py` (deleted in step 2): `:7`, `:10`, `:107`, `:147`.
+- [x] Hardcoded defaults and paths; the `--split_json` default; output-only code. Exact lines after
+  step 9. Done: `--data_root` and `--out_dir` have no default now (all four callers pass both); the
+  `--split_json` default (a paper-era file name) stays: every caller passes `--shas`, and flags stay (Keep stable 3).
+- [x] Comments naming `predict_emission_voxels.py` (deleted in step 2): `:7`, `:10`, `:107`, `:147`.
 
 **Instructions:**
 
-**Result:**
+**Result:** `--data_root` and `--out_dir` required, docstring and comments rewritten. Full gate 204/204 identical
+(sp4090 against its own baseline), release gate 20/20 identical, parent tests 25 passed (the 2 known failures).
 
 ### 11. The chain scripts in `data_toolkit/`
 
@@ -657,6 +663,9 @@ One doc of record, keeping upstream's attribution and citation (`README.md`).
 - [ ] In the parent, one commit: the pointer bump and the rename `TRELLIS2/` → `TRELLIS.2-Emission/` (`.gitmodules`, the
   gitlink, the o_voxel symlink target, the Solar sbatch paths of Keep stable 1, every parent
   reference: search again).
+- [ ] The parent's four callers of `data_toolkit/predict_emission.py` (`predict_emission_voxels_twostream.py`
+  before step 10): `evaluation/newdata_eval/sweeps/job_dit.sh`, `sweeps/star2/dit_worker.sbatch`,
+  `trellis2_release/infer_local.sh`, `trellis2_release/infer_solar.sbatch`; and the live docs naming it.
 - [ ] Parent docs: `AGENTS.md:31,45-47,54,65,152-163` (`:45-47`: the ~20 files with the old path are
   inside TRELLIS2, not in the parent, and step 2 deletes the live ones; the symlink stays for o_voxel),
   `.claude/rules/trellis2.md` (paths, scripts, trainer names; already stale: `:130` names `_v3` as

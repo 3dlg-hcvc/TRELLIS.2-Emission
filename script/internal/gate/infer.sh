@@ -29,7 +29,8 @@ case "${GATE_RUN:-paper}" in
     VAE_CKPT=$VAE/ckpts/step0035400-0.0036.ckpt; VAE_CFG=$VAE/config.yaml ;;
   *) echo "GATE_RUN must be paper or release" >&2; exit 2 ;;
 esac
-for f in "$DIT_CKPT" "$DIT_CFG" "$VAE_CKPT" "$VAE_CFG" "$T/data_toolkit/predict_emission_voxels_twostream.py"; do
+PRED=data_toolkit/predict_emission.py; [ -f "$T/$PRED" ] || PRED=data_toolkit/predict_emission_voxels_twostream.py   # its name before step 10
+for f in "$DIT_CKPT" "$DIT_CFG" "$VAE_CKPT" "$VAE_CFG" "$T/$PRED"; do
   [ -f "$f" ] || { echo "missing $f" >&2; exit 2; }; done
 mapfile -t IDS < <(grep -v '^[[:space:]]*$' "$SHAS")
 [ "${#IDS[@]}" -gt 0 ] || { echo "empty shapes file $SHAS" >&2; exit 2; }
@@ -42,7 +43,7 @@ fi
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 rm -rf "$OUT"; mkdir -p "$OUT"; [ -f "$T/.gate_commit" ] && cp "$T/.gate_commit" "$OUT/"
 cd "$T"
-printf -v CMD '%q ' python data_toolkit/predict_emission_voxels_twostream.py \
+printf -v CMD '%q ' python "$PRED" \
   --dit_ckpt "$DIT_CKPT" --dit_cfg "$DIT_CFG" --vae_ckpt "$VAE_CKPT" --vae_cfg "$VAE_CFG" \
   --data_root "$DATA" --thumbnail_dir "$DATA/thumbnails" \
   --shas "$JOINED" --n all --guidance 3.0 --steps 50 --seed 0 --out_dir "$OUT"

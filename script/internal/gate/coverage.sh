@@ -54,5 +54,5 @@ PYEOF
 ) > "$OUT/datasets.log" 2>&1; echo "datasets rc=$?"
 cd "$T" && "$PY" -m coverage combine --rcfile="$OUT/.coveragerc" -q && "$PY" -m coverage report --rcfile="$OUT/.coveragerc" -m > "$OUT/report.txt"
 cd "$OUT"
-grep -E "^(train\.py|trellis2/(datasets/(emission_helpers|sparse_voxel_emission|structured_latent_emission)|trainers/(basic|callbacks|lightgen_hooks|vae/emission_vae))\.py|data_toolkit/(bake_pbr2emission_v3_init|dual_grid_from_glb|encode_shape_from_dual_grid|encode_pbr_from_voxels|encode_emission_twostream_dataset|eval_vae_recon|build_lightgenbench_index|predict_emission_voxels_twostream)\.py|vis/)" report.txt > ours.txt || true
+grep -E "^(train\.py|trellis2/(datasets/(emission_helpers|sparse_voxel_emission|structured_latent_emission)|trainers/(basic|callbacks|lightgen_hooks|vae/emission_vae))\.py|data_toolkit/(bake_pbr2emission_v3_init|dual_grid_from_glb|encode_shape_from_dual_grid|encode_pbr_from_voxels|encode_emission_twostream_dataset|eval_vae_recon|build_lightgenbench_index|predict_emission|predict_emission_voxels_twostream)\.py|vis/)" report.txt > ours.txt || true
 echo "COVERAGE_DONE $OUT"

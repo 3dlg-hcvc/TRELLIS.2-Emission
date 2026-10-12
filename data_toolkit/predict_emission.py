@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
-"""Two-stream emission DiT inference.
+"""Emission DiT inference: the pbr->emission chain (the paper's and the release's).
 
-Runs the two-stream emission DiT (emission_dit_twostream_74k, in=96,
-skip_pbr_cond=false) and saves per-shape predicted emission voxels
-(coords, pred, gt_recon, gt_emission) as npz under <out_dir>/pred_voxels/ --
-the SAME schema as predict_emission_voxels.py, so the voxel->UV bridge and
-evaluator run unchanged.
+Runs the emission DiT (in=96, skip_pbr_cond=false) and saves per-shape emission voxels
+(coords, pred, and gt_recon, gt_emission unless --pred_only) as npz under <out_dir>/pred_voxels/,
+the layout the parent repo's point-sampled evaluator reads (--voxel_pred_root).
 
-Two-stream specifics vs the channel-hijack predict_emission_voxels.py:
-  * emission encoder takes RAW 3-ch emission (no pack_emission_as_pbr).
-  * conditioning is 96-ch: [emission_noise(32), shape(32), pbr(32)] ->
-    concat_cond = cat([shape, pbr]) = 64ch (skip_pbr_cond=false).
-  * decoder takes cat([z_emission, z_pbr]) = 64ch -> 3-ch emission
-    (NOTE the decoder concat order is [emission, pbr]; the DiT cond order is
-    [shape, pbr] -- different, intentional).
-  * loads the precomputed PBR latent (tex_enc_next_dc_f16c32_fp16_256).
-Recipe verified against trellis2/trainers/vae/emission_vae.py and
-trellis2/datasets/lightgen_slat.py.
+  * the emission encoder takes the raw 3-channel emission;
+  * conditioning is 96 channels: [emission_noise(32), shape(32), pbr(32)], so
+    concat_cond = cat([shape, pbr]) = 64 channels;
+  * the decoder takes cat([z_emission, z_pbr]) = 64 channels -> 3-channel emission
+    (the decoder's concat order is [emission, pbr]; the DiT's cond order is [shape, pbr]:
+    different on purpose);
+  * the PBR and shape latents are the precomputed ones (tex_enc_ / shape_enc_next_dc_f16c32_fp16_256).
+Recipe as trellis2/trainers/vae/emission_vae.py and trellis2/datasets/structured_latent_emission.py
+train it.
 """
 from __future__ import annotations
 import argparse, hashlib, json, os, sys, types
@@ -71,7 +68,7 @@ def main():
     ap.add_argument("--dit_cfg", default=None)
     ap.add_argument("--vae_ckpt", required=True)
     ap.add_argument("--vae_cfg", default=None)
-    ap.add_argument("--data_root", default="/scratch/dya78/lightgen/lightgen_74k")
+    ap.add_argument("--data_root", required=True)
     ap.add_argument("--pbr_latent_name", default="tex_enc_next_dc_f16c32_fp16_256")
     ap.add_argument("--shape_latent_name", default="shape_enc_next_dc_f16c32_fp16_256")
     ap.add_argument("--split_json", default=None)
@@ -83,7 +80,7 @@ def main():
     ap.add_argument("--resolution", type=int, default=256)
     ap.add_argument("--guidance", type=float, default=3.0)
     ap.add_argument("--steps", type=int, default=50)
-    ap.add_argument("--out_dir", default="outputs/emission_dit_twostream_74k/eval")
+    ap.add_argument("--out_dir", required=True)
     ap.add_argument("--seed", type=int, default=0,
                     help="sampling seed. Per-shape noise is derived from sha256(sha:seed), so "
                          "it is independent of --shas order, batching and skipped shapes.")
@@ -91,7 +88,7 @@ def main():
                     help="write only coords+pred, skipping the gt_recon decode. Use for seeds "
                          "01..04: gt_recon/gt_emission are noise-independent, so seed00's copy "
                          "is the one the ceiling rows are scored from. Do NOT use for seed00 -- "
-                         "build_model_gallery.py and the UV viz/bridge tools index those keys "
+                         "build_model_gallery.py and the UV viz tools index those keys "
                          "with no guard and raise KeyError.")
     args = ap.parse_args()
 
@@ -104,7 +101,7 @@ def main():
     pbr_dir = os.path.join(args.data_root, "pbr_latents", args.pbr_latent_name)
     shape_dir = os.path.join(args.data_root, "shape_latents", args.shape_latent_name)
 
-    # ---- pick samples (identical selection logic to predict_emission_voxels.py) ----
+    # ---- pick samples ----
     if args.shas:
         shas_list = [s for s in args.shas.split(",") if s]
         n_sel = len(shas_list) if str(args.n) == "all" else int(args.n)
@@ -144,8 +141,7 @@ def main():
     p(f"Loading DiT: {args.dit_ckpt}")
     dit = build_models(dit_cfg["models"])["denoiser"]
     # mmap=True: these checkpoints are ~20.7 GB and a plain load was OOM-killed on a busy
-    # workstation. Commit 7f498af added this to predict_emission_voxels.py:159 only; the
-    # twostream lane was missed, and the multi-seed round runs it five times.
+    # workstation.
     ck = torch.load(args.dit_ckpt, map_location="cpu", weights_only=False, mmap=True)["state_dict"]
     dit.load_state_dict({k.removeprefix("models.denoiser."): v for k, v in ck.items() if k.startswith("models.denoiser.")})
     dit.to(DEVICE).eval()
@@ -199,7 +195,7 @@ def main():
 
         # (D) sample DiT: noise(32) + concat_cond(64) -> [emission_noise, shape, pbr]=96
         _, img_feat = encode_image(sha); neg = torch.zeros_like(img_feat)
-        # GLOBAL seed, not a torch.Generator -- see the sibling predictor and
+        # GLOBAL seed, not a torch.Generator: the parent repo's
         # docs/superpowers/specs/2026-08-15-multi-seed-evaluation-design.md §2.2.
         torch.manual_seed(sample_seed(sha, args.seed))
         noise = z_emit_n.replace(torch.randn_like(z_emit_n.feats))
