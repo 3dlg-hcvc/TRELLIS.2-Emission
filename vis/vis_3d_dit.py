@@ -3,11 +3,11 @@
 
 Usage:
   python vis/vis_3d_dit.py \\
-      --dataset data/lightgen_test/df_10samples.parquet \\
+      --dataset <root>/<index>.parquet \\
       --samples all \\
-      --glb_root /localhome/dya78/code/lightgen/data/TexVerse-1K \\
-      --experiment overfit=outputs/emission_dit_10sample_overfit:outputs/emission_vae_10sample_overfit \\
-      --out visualizations/dit_overfit.html
+      --glb_root <dir with the GLBs> \\
+      --experiment "pbr→emission=outputs/<dit run>/ckpts/<file>.ckpt:outputs/<vae run>/ckpts/<file>.ckpt" \\
+      --out visualizations/dit.html
 """
 from __future__ import annotations
 import argparse
@@ -95,7 +95,7 @@ def _build_vae_decoder_from_latent(vae_handle):
 
     The encoder is needed to prime the decoder's subdivision cache (the sparse
     spatial2channel/channel2spatial ops pair encode→decode state). Legacy:
-    see archive/vis/legacy/vis_3d_emission_dit.py:191 (``z_enc = enc(x_gt)``).
+    archive/vis/legacy/vis_3d_emission_dit.py:191 in tag pre-refactor (``z_enc = enc(x_gt)``).
     """
     from trellis2.trainers.builders import build_models
     models = build_models(vae_handle.config["models"])

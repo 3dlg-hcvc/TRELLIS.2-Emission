@@ -2,7 +2,7 @@
 
 Used by vis/vis_3d_vae.py and vis/vis_3d_dit.py.
 
-See docs/superpowers/specs/2026-04-22-vis-3d-consolidation-design.md.
+Design: docs/superpowers/specs/2026-04-22-vis-3d-consolidation-design.md in tag pre-refactor.
 """
 from __future__ import annotations
 
@@ -334,7 +334,7 @@ def resolve_experiment(label: str, path: str) -> ExperimentHandle:
 # =============================================================================
 
 # Constants mirror EmissionPbrFinetuneTrainer.{PAD_METALLIC, PAD_ROUGHNESS, PAD_ALPHA}
-# in trellis2/trainers/vae/emission_pbr_finetune.py.
+# in trellis2/trainers/vae/emission_pbr_finetune.py (deleted in the refactor; tag pre-refactor).
 _PBR_PAD_METALLIC = -1.0
 _PBR_PAD_ROUGHNESS = 1.0
 _PBR_PAD_ALPHA = 1.0

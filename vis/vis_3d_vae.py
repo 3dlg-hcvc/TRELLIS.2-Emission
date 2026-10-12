@@ -2,15 +2,16 @@
 """Unified 3D interactive visualization for emission-VAE reconstruction.
 
 Renders GLB + GT emission + N experiment predictions per sample. All panels
-share a Three.js camera. See docs/superpowers/specs/2026-04-22-vis-3d-consolidation-design.md.
+share a Three.js camera (design: docs/superpowers/specs/2026-04-22-vis-3d-consolidation-design.md
+in tag pre-refactor).
 
 Usage:
   python vis/vis_3d_vae.py \\
-      --dataset data/lightgen_test/df_10samples.parquet \\
+      --dataset <root>/<index>.parquet \\
       --samples all \\
-      --glb_root /localhome/dya78/code/lightgen/data/TexVerse-1K \\
-      --experiment overfit=outputs/emission_vae_10sample_overfit \\
-      --out visualizations/vae_overfit.html
+      --glb_root <dir with the GLBs> \\
+      --experiment "pbr→emission=outputs/<vae run>/ckpts/<file>.ckpt" \\
+      --out visualizations/vae.html
 """
 from __future__ import annotations
 import argparse

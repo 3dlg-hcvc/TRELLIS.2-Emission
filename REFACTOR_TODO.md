@@ -21,7 +21,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 10. The predictor `predict_emission.py`
 - [x] 11. The chain scripts in `data_toolkit/`
 - [x] 12. Our hooks out of upstream's `train.py`, `basic.py`, `callbacks.py` (D13)
-- [ ] 13. The viewers in `vis/`
+- [x] 13. The viewers in `vis/`
 - [ ] 14. Environment files
 - [ ] 15. Release layer: generic entry points for LightgenBench users
 - [ ] 16. Docs
@@ -624,7 +624,8 @@ the HTML identical apart from timestamps.
 
 **Instructions:**
 
-**Result:**
+**Result:** Docstring examples use placeholders and display names; comments naming deleted files point at tag `pre-refactor`.
+Code unchanged (AST equal apart from docstrings), which replaces the HTML comparison; `_TRELLIS2_SITE` is under Later.
 
 ### 14. Environment files
 
