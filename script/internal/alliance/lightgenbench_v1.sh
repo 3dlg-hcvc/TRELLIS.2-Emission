@@ -7,10 +7,10 @@
 # The three wrappers beside this file (emission_vae_…, encode_emission_…, emission_dit_…) set STAGE,
 # so hedge.sh gets one launcher path per stage. Run on the cluster's login node from the repo root:
 #
-#   OUT_SUFFIX=_probe MAX_STEPS=100 WALLTIME=01:00:00 bash script/alliance/emission_vae_pbr2emission_lightgenbench_v1.sh
-#   bash script/alliance/emission_vae_pbr2emission_lightgenbench_v1.sh [--dry-run]
-#   VAE_CKPT=step00NNNNN-0.00NN.ckpt bash script/alliance/encode_emission_pbr2emission_lightgenbench_v1.sh
-#   bash script/alliance/emission_dit_pbr2emission_lightgenbench_v1.sh
+#   OUT_SUFFIX=_probe MAX_STEPS=100 WALLTIME=01:00:00 bash script/internal/alliance/emission_vae_pbr2emission_lightgenbench_v1.sh
+#   bash script/internal/alliance/emission_vae_pbr2emission_lightgenbench_v1.sh [--dry-run]
+#   VAE_CKPT=step00NNNNN-0.00NN.ckpt bash script/internal/alliance/encode_emission_pbr2emission_lightgenbench_v1.sh
+#   bash script/internal/alliance/emission_dit_pbr2emission_lightgenbench_v1.sh
 #   env: MAX_STEPS, OUT_SUFFIX (a probe goes to its own directory: a run dir that already holds a
 #        checkpoint RESUMES, and a resume skips the finetune load), WALLTIME, CLUSTER, ACCOUNT,
 #        RESUME=1 to submit into a run dir that already holds checkpoints on purpose
@@ -20,10 +20,10 @@
 # batch guard, sick-node gate, init bake with --verify-config, data counts, requeue cap 3, SIGTERM
 # lead 900 s for the VAE and 1500 s for the DiT's 20 GB last.ckpt). Cluster table, offline weight
 # cache, wandb online-if-reachable, read-only HOME, sleep 60 for hedged submission:
-# script/alliance/emission_dit_74k.sh. New here: the data is unpacked from the staged release tars
-# into $SLURM_TMPDIR (script/alliance/lightgenbench_{stage,unpack}.sh), and the DiT job copies
+# script/alliance/emission_dit_74k.sh (deleted; tag pre-refactor). New here: the data is unpacked from the staged release tars
+# into $SLURM_TMPDIR (script/internal/alliance/lightgenbench_{stage,unpack}.sh), and the DiT job copies
 # last.ckpt to snaps/last-step<N>.ckpt every 10,000 steps, which the paper run did with a separate
-# watcher job (script/star2/dit_agentic_snapshot_last_venus19.sbatch) — the paper's checkpoint was
+# watcher job (script/star2/dit_agentic_snapshot_last_venus19.sbatch, deleted; tag pre-refactor) — the paper's checkpoint was
 # chosen among those snapshots by IoU on the validation split, not by val/loss.
 # Spec: lightgen docs/superpowers/specs/2026-09-20-trellis2-emission-lightgenbench-retrain-design.md
 set -u
@@ -73,7 +73,7 @@ ACCOUNT="${ACCOUNT:-$ACCT}"
 # Pre-flight on the login node: a target that cannot run is refused here, not after hours in a queue.
 fail() { echo "PREFLIGHT ($CLUSTER, $STAGE): $*"; [ $DRY = 1 ] || exit 2; }
 [ -x "$REPO/env/bin/python" ] || fail "environment missing: $REPO/env"
-[ -f "$HFD/trellis2_index/df_lightgenbench.parquet" ] || fail "release not staged: run script/alliance/lightgenbench_stage.sh ($HFD)"
+[ -f "$HFD/trellis2_index/df_lightgenbench.parquet" ] || fail "release not staged: run script/internal/alliance/lightgenbench_stage.sh ($HFD)"
 W="hub/models--microsoft--TRELLIS.2-4B/snapshots/*/ckpts/tex_enc_next_dc_f16c32_fp16.safetensors"
 ls "$HOME"/scratch/.cache/huggingface/$W >/dev/null 2>&1 || ls "$HOME"/.cache/huggingface/$W >/dev/null 2>&1 \
    || fail "microsoft/TRELLIS.2-4B is in neither ~/scratch/.cache/huggingface nor ~/.cache/huggingface"
@@ -134,7 +134,7 @@ export HFD=${HFD} LAT=${LAT} LATENT_NAME=${LATENT_NAME}
 JOB
 
 if [ "$STAGE" = encode ]; then cat >> "$JOB" <<JOB
-bash script/alliance/lightgenbench_unpack.sh vae \$ROOT 2>&1 | tee -a "\${LOG}"; [ \${PIPESTATUS[0]} -eq 0 ] || exit 1
+bash script/internal/alliance/lightgenbench_unpack.sh vae \$ROOT 2>&1 | tee -a "\${LOG}"; [ \${PIPESTATUS[0]} -eq 0 ] || exit 1
 {
   pids=()
   for r in 0 1 2 3; do
@@ -167,7 +167,7 @@ JOB
 else
 UNPACK=vae; [ "$STAGE" = dit ] && UNPACK=dit
 cat >> "$JOB" <<JOB
-bash script/alliance/lightgenbench_unpack.sh ${UNPACK} \$ROOT 2>&1 | tee -a "\${LOG}"; [ \${PIPESTATUS[0]} -eq 0 ] || exit 1
+bash script/internal/alliance/lightgenbench_unpack.sh ${UNPACK} \$ROOT 2>&1 | tee -a "\${LOG}"; [ \${PIPESTATUS[0]} -eq 0 ] || exit 1
 python data_toolkit/build_lightgenbench_index.py --splits ${HFD}/splits.json --out-dir \$ROOT --check 2>&1 | tee -a "\${LOG}"; [ \${PIPESTATUS[0]} -eq 0 ] || exit 1
 JOB
 if [ "$STAGE" = vae ]; then cat >> "$JOB" <<JOB

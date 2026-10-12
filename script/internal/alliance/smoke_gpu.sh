@@ -1,7 +1,7 @@
 #!/bin/bash
 # GPU smoke test for a freshly built env: every compiled extension imports on a GPU node and CUDA does work.
 # Submit from the repo root with the cluster's 1-GPU form, e.g.
-#   sbatch --account=def-msavva_gpu --gpus-per-node=h100:1 -c 4 --mem=16G --time=00:15:00 -J smoke_gpu --output=log/smoke_gpu_%j.out script/alliance/smoke_gpu.sh
+#   sbatch --account=def-msavva_gpu --gpus-per-node=h100:1 -c 4 --mem=16G --time=00:15:00 -J smoke_gpu --output=log/smoke_gpu_%j.out script/internal/alliance/smoke_gpu.sh
 # Prints "SMOKE_GPU: ok" or "SMOKE_GPU: FAIL <module>: <error>" lines; exit code = number of failures.
 cd "${SLURM_SUBMIT_DIR:-$PWD}" || exit 2
 module load StdEnv/2023 gcc python/3.11 cuda/12.6 arrow/21.0.0 opencv/4.13.0 sparsehash || { echo "SMOKE_GPU: FAIL module load"; exit 1; }

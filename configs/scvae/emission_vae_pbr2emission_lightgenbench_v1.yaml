@@ -1,7 +1,7 @@
 # _lightgenbench_v1 (2026-09-20): the paper's pbr->emission VAE recipe
 # (emission_vae_pbr2emission_74k_v3_agentic.yaml, below, unchanged) on the released dataset,
 # Hugging Face 3dlg-hcvc/LightgenBench: train 36,426 / val 200 / test 200. Only the three dataset
-# paths and wandb_name differ. The paths are placeholders: script/alliance/lightgenbench_v1.sh
+# paths and wandb_name differ. The paths are placeholders: script/internal/alliance/lightgenbench_v1.sh
 # unpacks the release into $SLURM_TMPDIR and overrides data_root, parquet_file and split_json,
 # and it overrides batch_size_per_gpu to 16 (4x16 = global 64), as the paper's fir launcher did.
 # Spec: lightgen docs/superpowers/specs/2026-09-20-trellis2-emission-lightgenbench-retrain-design.md

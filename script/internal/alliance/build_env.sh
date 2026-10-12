@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build the lightgen Python environment on an Alliance cluster, in two steps that match where the network is:
-#   bash script/alliance/build_env.sh prepare [--modules "…"]   # LOGIN node (has internet): venv + wheelhouse pins + PyPI pins + clone the extension sources
-#   bash script/alliance/build_env.sh compile [--modules "…"]   # inside an allocation (compute nodes have no internet on nibi/rorqual/trillium): compile the CUDA extensions, smoke test
+#   bash script/internal/alliance/build_env.sh prepare [--modules "…"]   # LOGIN node (has internet): venv + wheelhouse pins + PyPI pins + clone the extension sources
+#   bash script/internal/alliance/build_env.sh compile [--modules "…"]   # inside an allocation (compute nodes have no internet on nibi/rorqual/trillium): compile the CUDA extensions, smoke test
 # Run both from the repo root. Idempotent: re-run after a failure and it skips what is already there.
 # Modules: fir's exact set by default (its env is Python 3.11.5; the launchers load the same modules); it loads verbatim on
 # nibi, rorqual, killarney, tamia and trillium-gpu (checked 2026-09-07). --modules "…" overrides it.

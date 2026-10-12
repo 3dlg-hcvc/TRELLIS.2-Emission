@@ -13,7 +13,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 3. `archive/`, patches, stale reports and plans, stale ignore rules
 - [x] 4. Vendored Pillow (`blender_packages/`)
 - [x] 5. Launchers
-- [ ] 5b. Move the kept cluster scripts into `script/internal/`
+- [x] 5b. Move the kept cluster scripts into `script/internal/`
 - [ ] 6. Configs
 - [ ] 7. Check setup: inference gate, VAE table, encode check, training check, noise baselines (no code change)
 - [ ] 8. Our dataset and trainer files beside upstream's (D13)
@@ -399,7 +399,8 @@ it changes the paths that cluster checkouts, `../AGENTS.md:153` (`backup_run.sh`
 
 **Instructions:**
 
-**Result:**
+**Result:** `script/alliance/`, `script/star2/backup_run.sh` moved under `script/internal/`; in-job and usage paths
+follow (`bash -n` clean). Gate subset20 20/0/0 byte-identical; tests 25/2 (unchanged).
 
 ### 6. Configs
 
@@ -647,8 +648,10 @@ One doc of record, keeping upstream's attribution and citation (`README.md`).
   the 74k encoding spec); the spec
   `docs/superpowers/specs/2026-09-16-trellis2-restructure-design.md:115` says the parent never
   imports `trellis2` (it does: `build_trellis2_bw.sbatch`).
-- [ ] Outside the repo: the compute-access skill's `hedge.sh:31-32` and `hedged-submission.md:34-35`
-  if step 5b moved the launchers; `SegviGen-emissive/emissive/infer/dump_pred_voxels_eval5.py:3` names
+- [ ] Outside the repo: step 5b moved the launchers to `script/internal/{alliance,star2}/`, which the
+  compute-access skill names at `hedge.sh:31-32`, `references/shared/hedged-submission.md:34-35`,
+  `references/shared/shell-and-ssh.md:30`, `references/star2/{bootstrap.md:36,recipes.md:72,overview.md:22,56}`,
+  `references/alliance/overview.md:46,67` (and the parent's `AGENTS.md:65,152-153`); `SegviGen-emissive/emissive/infer/dump_pred_voxels_eval5.py:3` names
   `bridge_voxel_to_uv.py` (another submodule, a docstring).
 
 **Instructions:**

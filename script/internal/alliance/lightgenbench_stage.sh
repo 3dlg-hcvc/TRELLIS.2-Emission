@@ -10,8 +10,8 @@
 # build the two index files the loader reads. Run ONCE per cluster, where the internet is reachable:
 # on the login node (nibi, rorqual and trillium compute nodes have none), or as a CPU job on fir.
 #
-#   bash script/alliance/lightgenbench_stage.sh                                  # a login node, from the repo root
-#   sbatch --account=def-msavva_cpu script/alliance/lightgenbench_stage.sh        # fir
+#   bash script/internal/alliance/lightgenbench_stage.sh                                  # a login node, from the repo root
+#   sbatch --account=def-msavva_cpu script/internal/alliance/lightgenbench_stage.sh        # fir
 #
 # What lands in $DEST (about 80 files, 17 GB, so the /scratch file quota does not notice):
 #   splits.json, checksums.sha256
@@ -20,7 +20,7 @@
 #   trellis2_index/{df_lightgenbench.parquet,data_splits_lightgenbench.json}
 # The atlas and multiview tars are not downloaded (TEXGen's and Hunyuan3D-Paint's input). $DEST is
 # the directory the TEXGen lane stages into, so tars already there are reused, not fetched again.
-# The tars stay packed: script/alliance/lightgenbench_unpack.sh unpacks them into $SLURM_TMPDIR
+# The tars stay packed: script/internal/alliance/lightgenbench_unpack.sh unpacks them into $SLURM_TMPDIR
 # at the start of every job. The repo is public, so no token is read.
 set -euo pipefail
 

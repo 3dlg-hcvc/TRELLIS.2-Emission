@@ -75,7 +75,7 @@ Lightning flushes scalars every `log_every_n_steps` (= `i_log`, default `50` in 
 
 ### Cluster launch scripts (star2)
 
-SBATCH wrappers live under `script/star2/<task>.sh` — one script per experiment family. They `ssh star2 sbatch <<EOF ... EOF` to submit to the cluster. **The SBATCH job body must use zsh** (the user's login shell on cluster nodes); the outer wrapper that runs `ssh ... sbatch` locally stays bash. Inside the heredoc:
+SBATCH wrappers live under `script/internal/star2/<task>.sh` — one script per experiment family. They `ssh star2 sbatch <<EOF ... EOF` to submit to the cluster. **The SBATCH job body must use zsh** (the user's login shell on cluster nodes); the outer wrapper that runs `ssh ... sbatch` locally stays bash. Inside the heredoc:
 
 - Shebang: `#!/bin/zsh`.
 - `source ~/.zshrc` before `conda activate trellis2`.
@@ -84,7 +84,7 @@ SBATCH wrappers live under `script/star2/<task>.sh` — one script per experimen
 - **Sync the launcher's commit to the cluster.** Never edit source files on the cluster; edit locally, `git push origin <branch>`, and put `git pull origin <branch>` in the sbatch body right after `cd /localscratch/dya78/TRELLIS.2-lightning`. This makes "what code ran" unambiguous and lets multiple collaborators share the cluster clone without racing edits.
 - **Regenerate gitignored artifacts in the body.** Files under `data/` (e.g. `data_splits_*.json`) are gitignored and won't arrive via `git pull` — regenerate them in the body so a fresh cluster clone works end-to-end.
 
-Naming convention: `script/star2/<task>.sh` ↔ job name / output dir `<task>[_<TAG>]` ↔ status report `reports/<task>_status.md`. When adding a new launch script, start from the closest one in tag `pre-refactor` (`git show pre-refactor:script/star2/<file>`; only `backup_run.sh` is kept here) rather than writing from scratch.
+Naming convention: `script/internal/star2/<task>.sh` ↔ job name / output dir `<task>[_<TAG>]` ↔ status report `reports/<task>_status.md`. When adding a new launch script, start from the closest one in tag `pre-refactor` (`git show pre-refactor:script/star2/<file>`; only `backup_run.sh` is kept here) rather than writing from scratch.
 
 #### Interactive debug allocation (probe before sbatch)
 
@@ -119,7 +119,7 @@ Gotcha: `nvidia-smi` via a second `srun --jobid=<id> --overlap` is scoped to the
 
 ### Fir deployment (Alliance Canada H100)
 
-Deployed at `/scratch/dya78/TRELLIS.2-lightning/` (`lightgen` branch), venv at `env/`; the fir launch scripts were under `script/fir/` (deleted; tag `pre-refactor` keeps them), the release runs use `script/alliance/`. Unlike star2, three deps are **not** plain pip installs:
+Deployed at `/scratch/dya78/TRELLIS.2-lightning/` (`lightgen` branch), venv at `env/`; the fir launch scripts were under `script/fir/` (deleted; tag `pre-refactor` keeps them), the release runs use `script/internal/alliance/`. Unlike star2, three deps are **not** plain pip installs:
 
 - **pyarrow** and **opencv** ship as Alliance *modules*, not wheels. Every fir job body must `module load StdEnv/2023 gcc python/3.11 cuda/12.6 arrow/21.0.0 opencv/4.13.0` **before** `source env/bin/activate`.
 - **diffusers** was missing from the env: `env/bin/pip install --no-index diffusers`.

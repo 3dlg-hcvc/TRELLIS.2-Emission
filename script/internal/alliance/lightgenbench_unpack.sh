@@ -1,11 +1,11 @@
 #!/bin/bash
 # Unpack the staged LightgenBench tars into the flat tree trellis2/datasets/lightgen_slat.py reads.
-# Called by script/alliance/lightgenbench_v1.sh inside the job, with <root> under $SLURM_TMPDIR
+# Called by script/internal/alliance/lightgenbench_v1.sh inside the job, with <root> under $SLURM_TMPDIR
 # (fir's /scratch file quota cannot hold 36,826 loose files per tree; a node-local disk can).
 #
-#   bash script/alliance/lightgenbench_unpack.sh vae <root>    # the VAE and the encode read these
+#   bash script/internal/alliance/lightgenbench_unpack.sh vae <root>    # the VAE and the encode read these
 #       <root>/emission_voxels_256/<uuid>.vxz, <root>/pbr_voxels_256/<uuid>.vxz
-#   bash script/alliance/lightgenbench_unpack.sh dit <root>    # the DiT reads these
+#   bash script/internal/alliance/lightgenbench_unpack.sh dit <root>    # the DiT reads these
 #       <root>/thumbnails/<uuid>.png
 #       <root>/shape_latents/shape_enc_next_dc_f16c32_fp16_256/<uuid>.npz
 #       <root>/pbr_latents/tex_enc_next_dc_f16c32_fp16_256/<uuid>.npz
