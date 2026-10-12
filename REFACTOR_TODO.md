@@ -11,7 +11,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 1. Housekeeping
 - [x] 2. Dead root files and one-off scripts
 - [x] 3. `archive/`, patches, stale reports and plans, stale ignore rules
-- [ ] 4. Vendored Pillow (`blender_packages/`)
+- [x] 4. Vendored Pillow (`blender_packages/`)
 - [ ] 5. Launchers
 - [ ] 5b. Move the kept cluster scripts into `script/internal/`
 - [ ] 6. Configs
@@ -358,7 +358,7 @@ subset20 20/0/0 byte-identical; tests 25 passed, 2 failed (unchanged).
 
 ### 4. Vendored Pillow (`blender_packages/`)
 
-- [ ] `blender_packages/` (133 files, 15.2 MB: Pillow 12.1.1 vendored for Blender). Its users are the
+- [x] `blender_packages/` (133 files, 15.2 MB: Pillow 12.1.1 vendored for Blender). Its users are the
   Blender 74k prep (deleted in steps 2 and 5) and upstream's `data_toolkit/dump_pbr.py:45`, which runs
   `blender_script/dump_pbr.py`; that script prepends the directory to `sys.path` (`:9`, our edit) and
   imports Pillow (`:12`). Neither run uses this path (their voxels come from
@@ -367,7 +367,8 @@ subset20 20/0/0 byte-identical; tests 25 passed, 2 failed (unchanged).
 
 **Instructions:**
 
-**Result:**
+**Result:** `blender_packages/` (133 files) removed; `dump_pbr.py`'s guarded path line stays (D14), upstream's
+`install_pillow.py` route applies. Gate subset20 20/0/0 byte-identical; tests 25/2 (unchanged).
 
 ### 5. Launchers
 
