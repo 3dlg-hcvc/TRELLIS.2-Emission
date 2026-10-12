@@ -23,7 +23,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 12. Our hooks out of upstream's `train.py`, `basic.py`, `callbacks.py` (D13)
 - [x] 13. The viewers in `vis/`
 - [x] 14. Environment files
-- [ ] 15. Release layer: generic entry points for LightgenBench users
+- [x] 15. Release layer: generic entry points for LightgenBench users
 - [ ] 16. Docs
 - [ ] 17. Merge into `lightgen` (D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
 - [ ] 18. Cut-over to the new code (D8)
@@ -650,28 +650,45 @@ directly, the Alliance venv from its requirements file) and what ran in each, pl
 
 No user or cluster paths in this layer. Needs steps 10 and 11; its README commands are written in step 16.
 
-- [ ] `script/lightgenbench/prepare_lightgenbench.sh <download_dir> <data_root>`: the generic half of
+- [x] `script/lightgenbench/prepare_lightgenbench.sh <download_dir> <data_root>`: the generic half of
   `script/alliance/lightgenbench_{stage,unpack}.sh` (untar the Hugging Face voxels and thumbnails into
-  the layout of Keep stable 11), then `build_lightgenbench_index.py`.
-- [ ] Shape and PBR latents: the release run took them from jupiter
+  the layout of Keep stable 11), then `build_lightgenbench_index.py`. Done; run on jupiter's copy of the
+  Hugging Face files (`SKIP_DOWNLOAD=1`): 78 tars checked, 36,826 shapes per folder, files identical to
+  `dataset_release`.
+- [x] Shape and PBR latents: the release run took them from jupiter
   `datasets/dataset_release_latents/tars/latents.tar` (built in the SegviGen session); the Hugging Face
   release does not carry latents. A user needs the commands that make them
   (`dual_grid_from_glb.py` → `encode_shape_from_dual_grid.py`, `encode_pbr_from_voxels.py`); check
-  on a few shapes that they reproduce the jupiter latents.
-- [ ] The chain in order with generic paths: bake the VAE init (`init_emission_vae_from_pbr_vae.py`) →
+  on a few shapes that they reproduce the jupiter latents. Done, with one change: `dual_grid_from_glb.py`'s
+  own loader gives other `vertices` on hundreds of cells per shape (float32 normalization), so
+  `dual_grid_from_glb.py` gets `--loader lightgenbench`, the lightgen repo's mesh loader the release used
+  (`SegviGen-Emission/scripts_segvigen/newdata/build_dual_grid.py:73-82`), and `--check_cells`; it also finds
+  GLBs in a TexVerse-1K folder, writes each grid whole and exits non-zero on a failure. Its default loader,
+  `load_mesh_from_glb` and `process_one` are as before. (It was first a separate script,
+  `script/lightgenbench/dual_grid_release.py`; at review, Dongchen 2026-10-17, merged, since files doing
+  the same job are merged.)
+- [x] The chain in order with generic paths: bake the VAE init (`init_emission_vae_from_pbr_vae.py`) →
   train the VAE → encode the emission latents with the best-`val/loss` VAE → put
   `normalization_stats.json` into the DiT config (the release launcher refuses a mismatch; a generic
   check does the same) → train the DiT → predict. The recipe is the release configs plus the launcher's
   overrides (`lightgenbench_v1.sh:43,45,229`: VAE 4 × 16 over the config's 32 per GPU, 35,800 steps;
   DiT 4 × 8, 50,000 steps, from `slat_flow_imgshape2tex_dit_1_3B_512_bf16`): the generic commands
-  carry the overrides, and the README states the GPU memory they need.
-- [ ] The internal Alliance launchers stay as they are.
-- [ ] The release DiT config's comment at `:36` names `script/fir/encode_twostream_dit_latents_74k.sh`
-  (deleted in step 5).
+  carry the overrides, and the README states the GPU memory they need. Done: `script/lightgenbench/run_chain.sh`
+  (stages latents, vae, encode, dit, predict); it also checks the temp folder a checkpoint passes through.
+  Codex's review: 8 of 9 findings fixed (latents bound to their VAE checkpoint, only verified tars unpacked,
+  the caller's GPU list, every file checked by name and opened, stale temp grids, `--ckpt none` for a fresh
+  run, paths relative to the caller, finite statistics); existing grids stay trusted (documented).
+- [x] The internal Alliance launchers stay as they are. (`lightgenbench_stage.sh` still says the dataset is
+  public with no token; it has been gated since 2026-10-06: Later.)
+- [x] The release DiT config's comment at `:36` names `script/fir/encode_twostream_dit_latents_74k.sh`
+  (deleted in step 5). Done, with the banned shorthand in its header made the
+  display names; the YAML values unchanged.
 
 **Instructions:**
 
-**Result:**
+**Result:** `script/lightgenbench/{prepare_lightgenbench.sh,run_chain.sh}`, `dual_grid_from_glb.py --loader lightgenbench`. Tested on 12 release shapes:
+dual grids byte-identical to the release, latents within float noise (IoU of predictions within 5e-4), predict byte-identical
+to the release gate, VAE (4090) and DiT (L40S) stages train and save. The internal launchers unchanged.
 
 ### 16. Docs
 
@@ -759,6 +776,11 @@ One doc of record, keeping upstream's attribution and citation (`README.md`).
 - [ ] **Hardcoded paths left by steps 10–13**: `vis/vis_utils.py:23` `_TRELLIS2_SITE`; the jupiter
   fallback in `eval_vae_recon.py`.
 - [ ] **Code no run reaches** (step 9): `emission_helpers._read_vxz_as_sparse`.
+- [ ] **`dual_grid_from_glb.py`'s own loader** (step 15): float32 normalization and the first node of each
+  mesh only; the release grids need `--loader lightgenbench`. Make that the default, or port the loader here?
+- [ ] **The end-of-training snapshot** asks for 16 samples and crashes in `torch.cat` with fewer training
+  shapes (step 15's 8-shape test; `val_num_samples` works around it).
+- [ ] **`lightgenbench_stage.sh`**: the dataset is gated since 2026-10-06; the launcher reads no token.
 - [ ] **Checks that do not exist yet**: the DiT trainer under coverage, multi-GPU, gradient accumulation,
   wandb online.
 

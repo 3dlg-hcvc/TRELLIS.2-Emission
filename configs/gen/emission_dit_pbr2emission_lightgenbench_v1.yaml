@@ -19,22 +19,23 @@
 # (4) wandb_name. pbr/shape normalization unchanged — those latent sets are unchanged.
 # Spec: lightgen docs/superpowers/specs/2026-08-22-agentic-filtered-baselines-retrain-design.md
 #
-# Emission DiT — 74k TWO-STREAM (mirror of emission_dit_74k.yaml for the
-# two-stream emission VAE instead of the channel-hijack baseline).
+# Emission DiT — 74k pbr→emission (mirror of emission_dit_74k.yaml for the
+# pbr→emission VAE instead of the albedo→emission one).
 #
-# Baseline (emission_dit_74k.yaml): channel-hijack VAE latents, in=64
+# Baseline (emission_dit_74k.yaml): albedo→emission VAE latents, in=64
 #   (32 emission + 32 shape), skip_pbr_cond=true, full weight reuse incl input proj.
-# This config:                      two-stream VAE latents, in=96
-#   (32 emission + 32 shape + 32 PBR), skip_pbr_cond=false. The two-stream
+# This config:                      pbr→emission VAE latents, in=96
+#   (32 emission + 32 shape + 32 PBR), skip_pbr_cond=false. The pbr→emission
 #   decoder consumes concat(z_emission, z_pbr), so the DiT MUST condition on the
 #   PBR latent — hence 96-ch input. The pretrained imgshape2tex DiT has a 64-ch
 #   input proj, so on finetune the input projection is RE-INITIALIZED (shape
 #   mismatch); all 30 transformer blocks are still loaded. This 96-ch recipe is
 #   the one validated at 10-sample overfit (emission_dit_10sample_overfit.yaml).
 #
-# Normalization: emission + PBR stats below are the real 74k values from
-# script/fir/encode_twostream_dit_latents_74k.sh (fir job 44913544; 36M tokens /
-# 72,549 samples each). shape_normalization is the production shape-latent stats.
+# Normalization: emission_normalization is the release latents' (its own comment below). The PBR
+# stats are the 74k values of fir job 44913544 (36M tokens / 72,549 samples; its launcher,
+# script/fir/encode_twostream_dit_latents_74k.sh, is in tag pre-refactor). shape_normalization is
+# the production shape-latent stats.
 
 models:
   denoiser:
