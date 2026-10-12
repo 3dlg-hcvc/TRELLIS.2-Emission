@@ -34,6 +34,9 @@ from trellis2.trainers.callbacks import (
     EmaCallback,
     SamplerStateCallback,
     SnapshotCallback,
+    TrainTraceCallback,
+    build_checkpoint_callback,
+    make_wandb_logger,
 )
 from trellis2.trainers.data import TrellisDataModule
 from trellis2 import trainers as trellis_trainers
@@ -365,93 +368,13 @@ def build_logger(cfg: Dict[str, Any], output_dir: str):
     project = trainer_args.get("wandb_project", "trellis2")
     name = trainer_args.get("wandb_name")
     entity = trainer_args.get("wandb_entity")
-
-    # Persist the wandb run ID across requeues so resumed jobs continue the
-    # same wandb run instead of starting a fresh one each cycle. Delete
-    # {output_dir}/wandb_run_id.txt to force a new run (e.g. when starting
-    # a new experiment from the same output_dir).
-    wandb_id_path = os.path.join(output_dir, "wandb_run_id.txt")
-    wandb_id = None
-    if os.path.exists(wandb_id_path):
-        try:
-            with open(wandb_id_path) as f:
-                wandb_id = (f.read().strip() or None)
-        except Exception:
-            wandb_id = None
-
-    logger = WandbLogger(
-        project=project,
-        name=name,
-        entity=entity,
-        save_dir=output_dir,
-        id=wandb_id,
-        resume="allow" if wandb_id else None,
-    )
-
-    # First-run only (rank 0): persist the auto-generated run ID for later
-    # requeues. Accessing `logger.experiment.id` triggers wandb.init() so
-    # the ID is available; non-rank-0 instances of WandbLogger return a
-    # dummy experiment whose .id is None, which we ignore.
-    if wandb_id is None and int(os.environ.get("SLURM_PROCID", "0")) == 0:
-        try:
-            new_id = logger.experiment.id
-            if new_id:
-                os.makedirs(output_dir, exist_ok=True)
-                with open(wandb_id_path, "w") as f:
-                    f.write(new_id)
-        except Exception:
-            pass
-
+    logger = make_wandb_logger(project, name, entity, output_dir)
     config_payload = trainer_args.get("wandb_config", cfg)
     try:
         logger.experiment.config.update(config_payload, allow_val_change=True)
     except Exception:
         pass
     return logger
-
-
-def build_checkpoint_callback(trainer_args: Dict[str, Any], ckpt_dir: str) -> ModelCheckpoint:
-    """Construct the run's ModelCheckpoint callback.
-
-    Two modes:
-      * Top-k val mode (``save_top_k`` set): keep the K best checkpoints by
-        ``monitor_metric`` (written at validation-epoch end) plus a ``last.ckpt``
-        for resume. ``last.ckpt`` is refreshed every ``ckpt_last_every_n_steps``
-        steps (default 200) so a hard crash loses at most that many steps; on a
-        graceful (SIGTERM) requeue the trainer's signal handler still saves exact
-        state. NOTE: never set this to 1 — rewriting the multi-GB checkpoint every
-        step blocks training on a Lustre write each step (~90% of wall-clock; see
-        CheckpointTimingCallback). The top-k save itself is independent of this
-        interval — it fires at validation-epoch end via the monitor metric.
-      * Legacy step-interval mode (``i_save`` set, no ``save_top_k``): keep all
-        checkpoints at the ``i_save`` step interval.
-    """
-    i_save = trainer_args.get("i_save")
-    save_top_k_cfg = trainer_args.get("save_top_k")
-    if save_top_k_cfg is not None:
-        monitor_metric = str(trainer_args.get("monitor_metric", "val/loss"))
-        monitor_mode = str(trainer_args.get("monitor_mode", "min")).lower()
-        if monitor_mode not in ("min", "max"):
-            raise ValueError(f"monitor_mode must be 'min' or 'max', got {monitor_mode!r}")
-        filename = "step{step:07d}-{" + monitor_metric + ":.4f}"
-        last_every_n_steps = int(trainer_args.get("ckpt_last_every_n_steps", 200))
-        return ModelCheckpoint(
-            dirpath=ckpt_dir,
-            filename=filename,
-            monitor=monitor_metric,
-            mode=monitor_mode,
-            save_top_k=int(save_top_k_cfg),
-            save_last=True,
-            every_n_train_steps=last_every_n_steps,
-            auto_insert_metric_name=False,
-        )
-    return ModelCheckpoint(
-        dirpath=ckpt_dir,
-        filename="step{step:07d}",
-        every_n_train_steps=(int(i_save) if i_save is not None else None),
-        save_last=True,
-        save_top_k=-1,
-    )
 
 
 def build_trainer(
@@ -495,6 +418,7 @@ def build_trainer(
 
     ckpt_dir = os.path.join(output_dir, "ckpts")
     callbacks.append(build_checkpoint_callback(trainer_args, ckpt_dir))
+    callbacks.append(TrainTraceCallback())
 
     mix_mode = trainer_args.get("mix_precision_mode")
     if mix_mode is None and trainer_args.get("fp16_mode") is not None:

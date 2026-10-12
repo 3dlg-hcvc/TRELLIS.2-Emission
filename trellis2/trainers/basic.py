@@ -548,67 +548,6 @@ class BasicTrainer(pl.LightningModule):
         self._log_terms(terms, "val", batch_size=batch_size, on_step=False, on_epoch=True)
         return terms
 
-    def on_validation_epoch_end(self) -> None:
-        if not self._is_global_zero():
-            return
-        trainer = getattr(self, "trainer", None)
-        if trainer is None:
-            return
-        metrics = getattr(trainer, "callback_metrics", {}) or {}
-        val_items = []
-        for key in sorted(metrics.keys()):
-            if not str(key).startswith("val/"):
-                continue
-            value = metrics[key]
-            try:
-                value = float(value.item()) if torch.is_tensor(value) else float(value)
-            except Exception:
-                continue
-            val_items.append((str(key), value))
-        if not val_items:
-            return
-        step = int(getattr(trainer, "global_step", 0))
-        epoch = int(getattr(trainer, "current_epoch", 0))
-        formatted = "  ".join(f"{k}={v:.4f}" for k, v in val_items)
-        print(f"[val] step={step}  epoch={epoch}  {formatted}", flush=True)
-
-    def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int) -> None:
-        # Per-step text trace symmetric to [val]. Cadence follows
-        # Trainer.log_every_n_steps (= i_log) so it stays aligned with the
-        # wandb / CSV scalar flush — and survives `tee` piping that mangles
-        # Lightning's TTY-only progress bar.
-        if not self._is_global_zero():
-            return
-        trainer = getattr(self, "trainer", None)
-        if trainer is None:
-            return
-        step = int(getattr(trainer, "global_step", 0))
-        if step <= 0:
-            return
-        log_every = int(getattr(trainer, "log_every_n_steps", 1) or 1)
-        if step % log_every != 0:
-            return
-        metrics = getattr(trainer, "callback_metrics", {}) or {}
-        train_items = []
-        for key in sorted(metrics.keys()):
-            if not str(key).startswith("train/"):
-                continue
-            # Skip the on_epoch aggregates — they only update at epoch boundary
-            # and would be redundant with the per-step *_step values.
-            if str(key).endswith("_epoch"):
-                continue
-            value = metrics[key]
-            try:
-                value = float(value.item()) if torch.is_tensor(value) else float(value)
-            except Exception:
-                continue
-            train_items.append((str(key), value))
-        if not train_items:
-            return
-        epoch = int(getattr(trainer, "current_epoch", 0))
-        formatted = "  ".join(f"{k}={v:.4f}" for k, v in train_items)
-        print(f"[train] step={step}  epoch={epoch}  {formatted}", flush=True)
-
     @torch.no_grad()
     def visualize_sample(self, sample):
         if self.dataset is not None and hasattr(self.dataset, "visualize_sample"):

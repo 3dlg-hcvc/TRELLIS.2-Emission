@@ -20,7 +20,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 9. Coverage run (no code change)
 - [x] 10. The predictor `predict_emission.py`
 - [x] 11. The chain scripts in `data_toolkit/`
-- [ ] 12. Our hooks out of upstream's `train.py`, `basic.py`, `callbacks.py` (D13)
+- [x] 12. Our hooks out of upstream's `train.py`, `basic.py`, `callbacks.py` (D13)
 - [ ] 13. The viewers in `vis/`
 - [ ] 14. Environment files
 - [ ] 15. Release layer: generic entry points for LightgenBench users
@@ -272,7 +272,7 @@ New for TRELLIS2 (Dongchen's answers of 2026-10-10; all answered):
   `trellis2/datasets/sparse_voxel_emission.py` (beside `sparse_voxel_pbr.py`) and
   `structured_latent_emission.py` (beside `structured_latent_svpbr.py`), `lightgen_slat.py` becomes
   aliases (step 8; at review it was deleted instead); our hooks in upstream's `train.py`, `basic.py`, `callbacks.py` move out into files
-  of their own (step 12; the September restructure's `utils/train_ext.py` is a reference). Only the
+  of their own (step 12; at review they went to the end of upstream's `callbacks.py` instead; the September restructure's `utils/train_ext.py` is a reference). Only the
   registration lines stay in upstream files. Not covered: D14.
 - [x] D14 `o-voxel/` stays untouched, our two edits included (emissive buffers in
   `o_voxel/convert/volumetic_attr.py`, the `emissiveMipmaps` fix in `src/convert/volumetic_attr.cpp`):
@@ -586,9 +586,33 @@ listed for Dongchen. Training check for each move. If a hook moves into a callba
 must still be read before the scheduler step (`basic.py:534` does it inside `training_step`; the
 September restructure's callback read it late until `b960f52`).
 
+Done: `make_wandb_logger`, `build_checkpoint_callback`, `CheckpointTimingCallback` and
+`TrainTraceCallback` (the `[train]`/`[val]` lines, formerly two `BasicTrainer` hooks) leave `train.py` and
+`basic.py` for the end of `trellis2/trainers/callbacks.py`, after upstream's callbacks. They first went to a
+file of their own, `lightgen_hooks.py`; at review (Dongchen, 2026-10-17) they were merged into
+`callbacks.py`, since files doing the same job are merged. Kept in upstream files, for Dongchen's review
+(`git diff main` after this step: 8 files, +309/−16):
+
+- `trainers/callbacks.py`: our four callbacks above, after upstream's, and the three imports they need.
+- `train.py`: the hook imports and four call sites, the `EmissionVaeTrainer` entry in `TRAINER_MAP`.
+  Upstream's now-unused `ModelCheckpoint` and `WandbLogger` imports stay, so the diff stays small.
+- `basic.py` `train/lr` log in `training_step`: it must read the lr before the scheduler step; a callback
+  reads it one step late.
+- `basic.py` `_resolve_hf_path` and the `.safetensors` load: the release configs name the pretrained
+  weights by Hugging Face path, and upstream's DiT trainer (used by name) loads through this method.
+- `basic.py` the `visualize_sample` guard: our datasets have none, and upstream's snapshot calls it.
+- `utils/data_utils.py` `ResumableSampler.set_epoch`: an upstream bug (every epoch reshuffled with seed 0).
+- `trainers/data.py` `val_dataloader` returns `[]`, not `None`, for Lightning 2.x.
+- `flow_matching/mixins/image_conditioned.py`: the DINOv3 layer path for transformers ≥ 5.5.
+- The registry lines in `datasets/__init__.py` and `trainers/__init__.py`.
+
+The sampler, validation-loader, DINOv3 and `.safetensors` fixes would help upstream too; offering them is Later.
+
 **Instructions:**
 
-**Result:**
+**Result:** the logger, checkpoint and trace hooks go to the end of `callbacks.py` (merged there at review). VAE fresh and resume
+identical (incl. `[train]`/`[val]` and `[ckpt-timing]` lines), DiT fresh and resume within noise on L40S (first step exact),
+wandb run id kept across resume, paper subset 20/20 identical, parent tests 25 passed (2 known failures).
 
 ### 13. The viewers in `vis/`
 
@@ -728,6 +752,13 @@ One doc of record, keeping upstream's attribution and citation (`README.md`).
   encoders' fail-fast on an empty data root (`c077f4d`, `60f06fd`), the coordinate-mismatch raises in
   the dataset readers (`01ed03f`, tests in `f9b5f5e`).
 - [ ] **Our dataset reader → upstream's base classes** (if step 8 shows a difference).
+- [ ] **Upstream fixes offered upstream** (step 12): `ResumableSampler.set_epoch`, `val_dataloader` → `[]`,
+  the DINOv3 layer path, the `.safetensors` and Hugging Face path load.
+- [ ] **Hardcoded paths left by steps 10–13**: `vis/vis_utils.py:23` `_TRELLIS2_SITE`; the jupiter
+  fallback in `eval_vae_recon.py`.
+- [ ] **Code no run reaches** (step 9): `emission_helpers._read_vxz_as_sparse`.
+- [ ] **Checks that do not exist yet**: the DiT trainer under coverage, multi-GPU, gradient accumulation,
+  wandb online.
 
 ## Out of scope
 
