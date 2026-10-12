@@ -32,9 +32,11 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 
 - One step = one commit with one purpose. Removals and moves never share a commit with a behavior
   change. Cleanups change no behavior; fixes go under "Later", one step each, only if wanted.
-- Dongchen gives the go for each step or range of steps (since 2026-10-07; no automatic run). A step
-  whose checks pass is committed and reported; its **Result** is at most three lines (what changed,
-  commits, verdict), run details go to commit messages. Dongchen can add **Instructions** to any step.
+- Since 2026-10-11 steps 4-16 run automatically, back to back (Dongchen: "continue ... step by step
+  and automatically and commit the changes for each of the steps"); he reviews the branch before the
+  merge. A step whose checks pass is committed and reported; its **Result** is at most three lines
+  (what changed, commits, verdict), decisions taken inside a step go to its Result and its commit
+  message. Step 17 (the merge) waits for his review and go. Dongchen can add **Instructions** to any step.
 - Within a step, stop and ask only for: (1) an open decision the step needs; (2) a check that fails, unless the
   cause is an obvious slip in the step; (3) something the plan does not cover (a needed fix, a
   behavior change, a file outside the step's list); (4) an action outside the worktree and our
