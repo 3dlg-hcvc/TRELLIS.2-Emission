@@ -15,7 +15,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 5. Launchers
 - [x] 5b. Move the kept cluster scripts into `script/internal/`
 - [x] 6. Configs
-- [ ] 7. Check setup: inference gate, VAE table, encode check, training check, noise baselines (no code change)
+- [x] 7. Check setup: inference gate, VAE table, encode check, training check, noise baselines (no code change)
 - [ ] 8. Our dataset and trainer files beside upstream's (D13)
 - [ ] 9. Coverage run (no code change)
 - [ ] 10. The predictor `predict_emission_voxels_twostream.py`
@@ -120,7 +120,12 @@ Step 7 adds the numeric comparison.
   `ours_pbr2emission`; pass when `per_shape.csv` is identical with the `seconds` column dropped
   (`vae_compare.sh`). The committed `reports/vae_recon_test204/per_shape.csv` holds six arms (1,224
   rows); filtered to the two gate arms it matched in September.
-- The release checkpoints get their own gate on a release test subset (step 7).
+- The release checkpoints get their own gate: `GATE_RUN=release` on `C/release_root` (20 release test shapes).
+- Training checks: the VAE on the workstation 4090 (exact); the DiT on Solar L40S (`star2/checks.sbatch`;
+  1.3B does not train in 24 GB). The DiT's flash-attention backward is not deterministic, so its check
+  passes within the envelope of four `pre-refactor` runs, the candidate's distance to the nearest run per
+  measure, and the first step's loss exactly (`compare_traincheck.py`). `baselines.json` lists every
+  baseline per GPU type; sp4090 runs the paper gate through `C/sp4090_tooling/sp4090_gate.sh`.
 - Tests: `data_toolkit/test_{eval_vae_recon,emission_vae_resume,checkpoint_cadence}.py` and
   `vis/vis_utils_test.py` read 25 passed, 2 failed on `pre-refactor` (the two need a 10-sample VAE
   checkpoint this host lacks); every step keeps that.
@@ -421,27 +426,27 @@ and the paper runs' `config.yaml`. Gate subset20 20/0/0 byte-identical; tests 25
 All runs on tag `pre-refactor`, in parallel across machines. Tooling goes to `script/internal/gate/`;
 data and run outputs outside the repo.
 
-- [ ] A numeric comparison of two `pred_voxels/` trees: per shape and key, byte identity, mean and
+- [x] A numeric comparison of two `pred_voxels/` trees: per shape and key, byte identity, mean and
   max absolute difference; the evaluator's IoU, MAE and PSNR from `../evaluation/pointsampled/`
   reading the voxels (`--voxel_pred_root`); NaN-safe (NaN on one side fails); verdict EMPTY on an
   empty shapes file. TEXGen's `scripts/internal/gate/compare_numeric.py` is the pattern.
 - [x] The 20-shape subset of the 204, fixed in a file (`subset20.txt`, step 1).
-- [ ] Gate noise: two runs on unchanged code per GPU type (the workstation 4090 read zero in
+- [x] Gate noise: two runs on unchanged code per GPU type (the workstation 4090 read zero in
   September; re-measure on `pre-refactor`): sp4090 (runtime
   `/local-scratch/localhome/dya78/t2lgb_sp4090`, env pack and compiled o_voxel), Solar L40S (the
   `trellis2_release/infer_solar.sbatch` pattern with a `git archive` of the tree under test; it
   requires compute capability 8.9).
-- [ ] The VAE table and its noise run.
-- [ ] The encode check: `encode_emission_twostream_dataset.py` on the gate shapes with the paper VAE;
+- [x] The VAE table and its noise run.
+- [x] The encode check: `encode_emission_twostream_dataset.py` on the gate shapes with the paper VAE;
   the latents and `normalization_stats.json` compared before and after (the paper encode recorded
   bitwise-equal tensors across its two ranks).
-- [ ] The release checkpoints: pull the release VAE `step0035400-0.0036.ckpt` (13.3 GB) and DiT
+- [x] The release checkpoints: pull the release VAE `step0035400-0.0036.ckpt` (13.3 GB) and DiT
   `snaps/last-step0050000.ckpt` (20.7 GB) with their `config.yaml` into the main checkout's
   `outputs/<run>/` (rsync, sha256 on both ends against `SHA256SUMS.jupiter`; check `df` first). A
   20-shape release test subset with inputs from jupiter `datasets/dataset_release{,_latents}` laid
   out as `infer_local.sh:43-50` does; its baseline and noise runs. Call the predictor directly:
   `infer_local.sh` runs the main checkout and refuses a dirty tree.
-- [ ] The training check, for the VAE (`EmissionVaeTrainer`) and the DiT
+- [x] The training check, for the VAE (`EmissionVaeTrainer`) and the DiT
   (`ImageConditionedSparseFlowMatchingCFGTrainer`), through the real `train.py`:
   - a tiny training root: the release layout built with `build_lightgenbench_index.py` over a few
     release shapes (emission voxels for the VAE; emission, shape and PBR latents and thumbnails for
@@ -461,12 +466,14 @@ data and run outputs outside the repo.
   - memory: the 1.3B DiT may not train on a 24 GB 4090 even at batch 1 (measure; else Solar L40S);
     a resume loads 13–21 GB with optimizer state into host RAM (the workstation has 62 GB).
   Not covered: gradient accumulation and multi-GPU DDP.
-- [ ] The existing tests on `pre-refactor`: `data_toolkit/test_{eval_vae_recon,emission_vae_resume,checkpoint_cadence}.py`,
+- [x] The existing tests on `pre-refactor`: `data_toolkit/test_{eval_vae_recon,emission_vae_resume,checkpoint_cadence}.py`,
   `vis/vis_utils_test.py`; record pass and skip counts.
 
 **Instructions:**
 
-**Result:**
+**Result:** Tooling in `script/internal/gate/` (+ `baselines.json`; Codex-reviewed, 18 findings fixed).
+Noise on `pre-refactor`: zero on both 4090s for the paper and release gates, the VAE table, the encode check
+and the VAE training check; the DiT training check (L40S, 4 runs) drifts from step 2 and passes by nearest run.
 
 ### 8. Our dataset and trainer files beside upstream's (D13)
 

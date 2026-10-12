@@ -168,6 +168,30 @@ python -m pytest data_toolkit/test_eval_vae_recon.py data_toolkit/test_emission_
 python vis/vis_3d_vae.py                             # 3D interactive HTML visualization
 ```
 
+### Checking a code change (refactor gate)
+
+Tooling in `script/internal/gate/`; data and outputs outside the repo, in
+`C = /local-scratch/localhome/dya78/lightgen_eval_local/trellis2_refactor_checks/`. `baselines.json`
+lists, per GPU type and check, the baseline and noise runs of tag `pre-refactor`; compare a run only with
+runs of the same GPU type (the workstation and sp4090 4090s differ from each other at float level).
+
+```bash
+G=script/internal/gate
+bash $G/tree.sh <commit> C/trees/<name>                         # the commit + the main checkout's outputs/, data/
+bash $G/infer.sh C/trees/<name> C/gate/<run> [$G/subset20.txt]   # paper gate; GATE_RUN=release: release ckpts on C/release_root
+bash $G/compare.sh <baseline run> <run> [<shas>]                 # byte comparison; compare_numeric.py for float differences
+bash $G/vae_table.sh C/trees/<name> C/vae/<run>; bash $G/vae_compare.sh <a.csv> <b.csv>
+bash $G/encode_check.sh C/trees/<name> C/encode/<run>; python $G/compare_encode.py --a <run> --b <run>
+bash $G/train-check.sh C/trees/<name> <out> vae|dit fresh|resume   # real train.py, 16 steps, every step recorded
+python3 $G/compare_traincheck.py --a <record> --b <record> [--envelope <record> ...]
+```
+
+On the workstation every check repeats exactly. The DiT training check does not: its sparse attention calls
+flash-attention without the deterministic option, so the backward pass varies between runs (the first
+step's loss repeats exactly; later steps drift by ~1e-3). It runs on Solar L40S (`star2/checks.sbatch`; a
+1.3B DiT does not train in 24 GB) and passes within the envelope of four `pre-refactor` runs, the first
+step's loss exactly. sp4090 runs the paper gate through `C/sp4090_tooling/sp4090_gate.sh`.
+
 ## Working conventions
 
 - **Visualizations: one HTML file with a sample dropdown**, not one file per sample. The pattern in `vis/vis_3d_*.py` (single HTML, embedded JSON, JS dropdown to switch samples) is the standard — don't emit N separate files.
