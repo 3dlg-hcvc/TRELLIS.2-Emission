@@ -1,5 +1,5 @@
 #!/bin/bash
-# Unpack the staged LightgenBench tars into the flat tree trellis2/datasets/lightgen_slat.py reads.
+# Unpack the staged LightgenBench tars into the flat tree the emission datasets read (trellis2/datasets/).
 # Called by script/internal/alliance/lightgenbench_v1.sh inside the job, with <root> under $SLURM_TMPDIR
 # (fir's /scratch file quota cannot hold 36,826 loose files per tree; a node-local disk can).
 #

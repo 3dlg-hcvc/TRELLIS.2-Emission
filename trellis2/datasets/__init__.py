@@ -16,9 +16,8 @@ __attributes = {
     'ImageConditionedSLatPbr': 'structured_latent_svpbr',
 
     # LightGen: emission generation in voxel space (TRELLIS.2-native)
-    # UV-space datasets archived at archive/datasets/lightgen_uv.py
-    'LightGenSLatEmission': 'lightgen_slat',
-    'LightGenSLatEmissionLatent': 'lightgen_slat',
+    'LightGenSLatEmission': 'sparse_voxel_emission',
+    'LightGenSLatEmissionLatent': 'structured_latent_emission',
 }
 
 __submodules = []
@@ -48,5 +47,6 @@ if __name__ == '__main__':
     from .structured_latent import SLat, ImageConditionedSLat
     from .structured_latent_shape import SLatShape, ImageConditionedSLatShape
     from .structured_latent_svpbr import SLatPbr, ImageConditionedSLatPbr
-    from .lightgen_slat import LightGenSLatEmission, LightGenSLatEmissionLatent
+    from .sparse_voxel_emission import LightGenSLatEmission
+    from .structured_latent_emission import LightGenSLatEmissionLatent
 

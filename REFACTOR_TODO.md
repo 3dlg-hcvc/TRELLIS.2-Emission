@@ -192,12 +192,12 @@ Step 7 adds the numeric comparison.
     `data/ckpt_init/` load), `trellis2.models.from_pretrained` (`strict=False`) and
     `EmissionVaeTrainer.strict_loading=False` (a `--ckpt last` resume); the predictor and the
     viewers load strictly. Attribute and module names inside the VAE and DiT stay.
-11. The data contract (`trellis2/datasets/lightgen_slat.py`): `<root>/{emission,pbr}_voxels_<res>/<sha>.vxz`
+11. The data contract (`trellis2/datasets/emission_helpers.py` and the two emission datasets; `lightgen_slat.py` until step 8a): `<root>/{emission,pbr}_voxels_<res>/<sha>.vxz`
     (attrs `emissive`; `base_color, metallic, roughness, alpha`),
     `{emission,pbr,shape}_latents/<name>/<sha>.npz` (`feats`, `coords`) with `normalization_stats.json`,
     `<thumbnail_dir>/<sha>.png`, a parquet indexed by sha with `success`, a split JSON
     `{split: {"indices": [...]}}` positional over the rows left after the `success` filter and,
-    when `min_emission > 0`, the `#stat_emission_color_max` filter (`lightgen_slat.py:148-152`) (auto-detected names
+    when `min_emission > 0`, the `#stat_emission_color_max` filter (`emission_helpers.py:120-122`) (auto-detected names
     `data_splits_emission_filtered.json`, `data_splits_filtered.json`). Producers:
     `../data_processing/data_preparation/voxels.py:250-279` and `run.py:147-161`,
     `data_toolkit/build_lightgenbench_index.py`, `data_toolkit/encode_emission_twostream_dataset.py`,
@@ -226,7 +226,7 @@ Step 7 adds the numeric comparison.
 17. Labmates: Kevin's `segvigen-lightning` forked `lightgen` at `202bfb0` and imports
     `ElasticSLatFlowModel`, the private `lightgen_slat._build_parquet_samples`, `_read_npz_as_sparse`,
     `_sparse_collate`, `ClassifierFreeGuidanceMixin` and the DiT trainer; renames break his future
-    rebases, not his runs. `SegviGen-emissive/` takes `o_voxel` from `TRELLIS2/o-voxel`.
+    rebases, not his runs. Since step 8a those three helpers are in `emission_helpers.py` only. `SegviGen-emissive/` takes `o_voxel` from `TRELLIS2/o-voxel`.
 
 ## Decisions
 
@@ -269,7 +269,7 @@ New for TRELLIS2 (Dongchen's answers of 2026-10-10; all answered):
   beside upstream's, not as edits inside upstream's files. The dataset classes move into
   `trellis2/datasets/sparse_voxel_emission.py` (beside `sparse_voxel_pbr.py`) and
   `structured_latent_emission.py` (beside `structured_latent_svpbr.py`), `lightgen_slat.py` becomes
-  aliases (step 8); our hooks in upstream's `train.py`, `basic.py`, `callbacks.py` move out into files
+  aliases (step 8; at review it was deleted instead); our hooks in upstream's `train.py`, `basic.py`, `callbacks.py` move out into files
   of their own (step 12; the September restructure's `utils/train_ext.py` is a reference). Only the
   registration lines stay in upstream files. Not covered: D14.
 - [x] D14 `o-voxel/` stays untouched, our two edits included (emissive buffers in
@@ -483,9 +483,17 @@ and the VAE training check; the DiT training check (L40S, 4 runs) drifts from st
 | `lightgen_slat.py` `LightGenSLatEmissionLatent` (DiT data; its own thumbnail loading at `:549`) | `structured_latent_svpbr.py` `ImageConditionedSLatPbr`, `components.py` `ImageConditionedMixin` |
 | `trellis2/trainers/vae/emission_vae.py` `EmissionVaeTrainer` | `trainers/vae/pbr_vae.py` `PbrVaeTrainer` (already beside it) |
 
-- [ ] 8a. The dataset file split into the two new files per D13; `lightgen_slat.py` keeps the
-  registry names as aliases. Full gate, VAE table, encode check, training check.
-- [ ] 8a also: the module docstring of `lightgen_slat.py:14` names `encode_emission_latent.py`
+- [x] 8a. The dataset file split into the two new files per D13; `lightgen_slat.py` keeps the
+  registry names as aliases. Full gate, VAE table, encode check, training check. Done: the shared
+  helpers went to a third file, `emission_helpers.py`; the class names stay (registry names); moved code
+  byte-identical; all checks identical, the DiT training check within noise.
+  Folded in at review (Dongchen, 2026-10-12): `lightgen_slat.py` deleted rather than kept as aliases (no
+  code imports it, every stored run config names the two classes through the registry, no published
+  checkpoint pickles a `trellis2` class: no converter needed), and `emission_common.py` named
+  `emission_helpers.py`. The checks above ran with the aliases and the old name; on the final tree:
+  `lightgen_slat` and `emission_common` no longer import, both datasets build and collate through the
+  registry, tests 25 passed (2 known failures), release gate 20/20 identical (no training check: a rename).
+- [x] 8a also: the module docstring of `lightgen_slat.py:14` names `encode_emission_latent.py`
   (deleted in step 2); the comment at `trellis2/datasets/__init__.py:19` names
   `archive/datasets/lightgen_uv.py` (deleted in step 3).
 - [ ] 8b. Our trainers used by neither run: `emission_pbr_finetune.py` (`EmissionPbrFinetuneTrainer`,

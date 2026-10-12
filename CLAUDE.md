@@ -302,7 +302,7 @@ Fix is `BalancedResumableSampler` (in `trellis2/utils/data_utils.py`), which spl
 - `trellis2/models/sc_vaes/sparse_unet_vae.py` — VAE encoder/decoder architecture
 - `trellis2/models/structured_latent_flow.py` — `SLatFlowModel`, `ElasticSLatFlowModel` (DiT)
 - `trellis2/trainers/` — PyTorch Lightning trainer classes (VAE, flow matching, with mixins for image/text conditioning)
-- `trellis2/datasets/lightgen_slat.py` — `LightGenSLatEmission` (raw voxels), `LightGenSLatEmissionLatent` (pre-encoded)
+- `trellis2/datasets/sparse_voxel_emission.py` — `LightGenSLatEmission` (raw voxels), beside upstream's `sparse_voxel_pbr.py`; `structured_latent_emission.py` — `LightGenSLatEmissionLatent` (pre-encoded), beside `structured_latent_svpbr.py`; their shared readers and index in `emission_helpers.py`
 - `trellis2/modules/` — Low-level ops: sparse convolution, attention, positional embeddings
 - `trellis2/pipelines/` — End-to-end inference pipelines (image-to-3D, texturing)
 - `o-voxel/` — C++/CUDA extension for voxelization, serialization (.vxz format), and mesh export
