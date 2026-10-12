@@ -126,7 +126,7 @@ Deployed at `/scratch/dya78/TRELLIS.2-lightning/` (`lightgen` branch), venv at `
 - **H100 node memory:** request `--mem=1024G` for a 4-GPU full node (= 4×256G). `--mem=1152G` is rejected ("Memory specification can not be satisfied"; allocatable cap is 1125G).
 - Pull code from origin to advance; never edit on the cluster (see the cluster-access skill).
 
-**PBR-VAE max batch size** (single H100 80GB, `EmissionPbrFinetuneTrainer`, fp16 + activation checkpointing): hard cap ≈ BS 88 on 1k data (BS 80 = 98% VRAM knife-edge; BS 96 OOMs). For 74k production (fatter voxel-count tail → +15–20% VRAM at the same BS), use **BS=48** (safe, ~76% on 1k) or BS=64 (aggressive — will occasionally OOM, needs `--requeue`). Always set `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`.
+**PBR-VAE max batch size** (single H100 80GB, measured with the albedo→emission `EmissionPbrFinetuneTrainer`, deleted in the refactor; fp16 + activation checkpointing): hard cap ≈ BS 88 on 1k data (BS 80 = 98% VRAM knife-edge; BS 96 OOMs). For 74k production (fatter voxel-count tail → +15–20% VRAM at the same BS), use **BS=48** (safe, ~76% on 1k) or BS=64 (aggressive — will occasionally OOM, needs `--requeue`). Always set `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`.
 
 ## Data Paths
 
@@ -217,17 +217,7 @@ only, those docs are the missing context.
 
 ### Emission (LightGen) Specifics
 
-Two distinct approaches are implemented for the emission VAE — pick the right one when picking a config/trainer.
-
-#### PBR VAE finetune via channel hijack (`EmissionPbrFinetuneTrainer`)
-
-Architecture is **byte-identical** to the production PBR VAE (`tex_{enc,dec}_next_dc_f16c32_fp16`): 6→6 input/output channels, 64→1024 model channels, latent_channels=32. **100% pretrained-weight reuse**, no input/output projection mismatch.
-
-Trick (in `trellis2/trainers/vae/emission_pbr_finetune.py:_pack_emission_as_pbr`): pack emission RGB into the `base_color` slot and fill `metallic / roughness / alpha` with constants `(-1, +1, +1)` in [-1, 1] space. Loss is taken only on the first 3 output channels (emission); the trailing 3 channels of the decoder output are discarded.
-
-I/O note: with the default `pbr_attrs: [base_color, metallic, roughness, alpha]`, `LightGenSLatEmission` reads `pbr_voxels_{res}/{sha}.vxz` for every sample, only for the trainer to overwrite those features with constants. Set `pbr_attrs: []` in the dataset args to skip the read — it's a no-op for the model.
-
-Configs: none kept (the `emission_pbr_*` family was deleted in the refactor; tag `pre-refactor` keeps it).
+The emission VAE is the two-stream concat VAE below. The albedo→emission channel-hijack VAE (`EmissionPbrFinetuneTrainer`: emission packed into the PBR VAE's `base_color` slot, metallic / roughness / alpha set to `(-1, +1, +1)`) and the conditional VAE (`EmissionPbrConditionalVaeTrainer`, `utils/model_surgery.py`) were deleted in the refactor; tag `pre-refactor` keeps them, and `vis/vis_utils.py` still opens their runs.
 
 #### Two-stream concat VAE (`EmissionVaeTrainer`)
 

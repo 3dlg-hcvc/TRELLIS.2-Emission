@@ -16,7 +16,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 5b. Move the kept cluster scripts into `script/internal/`
 - [x] 6. Configs
 - [x] 7. Check setup: inference gate, VAE table, encode check, training check, noise baselines (no code change)
-- [ ] 8. Our dataset and trainer files beside upstream's (D13)
+- [x] 8. Our dataset and trainer files beside upstream's (D13)
 - [ ] 9. Coverage run (no code change)
 - [ ] 10. The predictor `predict_emission_voxels_twostream.py`
 - [ ] 11. The chain scripts in `data_toolkit/`
@@ -496,11 +496,12 @@ and the VAE training check; the DiT training check (L40S, 4 runs) drifts from st
 - [x] 8a also: the module docstring of `lightgen_slat.py:14` names `encode_emission_latent.py`
   (deleted in step 2); the comment at `trellis2/datasets/__init__.py:19` names
   `archive/datasets/lightgen_uv.py` (deleted in step 3).
-- [ ] 8b. Our trainers used by neither run: `emission_pbr_finetune.py` (`EmissionPbrFinetuneTrainer`,
+- [x] 8b. Our trainers used by neither run: `emission_pbr_finetune.py` (`EmissionPbrFinetuneTrainer`,
   albedo→emission), `emission_pbr_conditional.py` and `utils/model_surgery.py` (its configs are archived:
   `archive/configs/scvae/emission_pbr_cvae_*.yaml`), with their `TRAINER_MAP` and registry entries and the `vis_utils.load_vae_from_handle`
   branches (`vis_utils.py:368-430`); old albedo→emission runs then no longer open in the viewers.
-  Gate subset.
+  Gate subset. Done, with one change of plan: the viewers' branches stay (they name the trainers only
+  as strings and import nothing deleted), so old albedo→emission runs still open.
 
 Branch `restructure-2026-09-16` did the dataset split (`01ed03f`) as a reference; take neither its
 config, script and launcher renames nor its behavior changes. Reusing upstream's base classes or
@@ -509,7 +510,9 @@ then it goes under Later.
 
 **Instructions:**
 
-**Result:**
+**Result:** 8a `76d6b68`: datasets split into `sparse_voxel_emission.py`, `structured_latent_emission.py`,
+`emission_helpers.py`. 8b: the albedo→emission and conditional VAE trainers deleted. Both: inference, VAE and
+encode checks identical, VAE training identical, DiT training within noise (first step exact).
 
 ### 9. Coverage run (no code change)
 
@@ -544,7 +547,8 @@ different script step 2 deletes, which the parent's docs still cite.
 `encode_emission_pbrfinetune_dataset.py` (deleted in step 2) in `encode_emission_twostream_dataset.py:4,86`;
 the docstring of `bake_pbr2emission_v3_init.py:27,62` names `configs/scvae/emission_vae_pbr2emission_74k_v3.yaml`
 (deleted in step 6).
-Names stay (Keep stable 12). Checks: the encode check, the VAE table; the bake's output
+Comments citing `trellis2/trainers/vae/emission_pbr_finetune.py` (deleted in step 8b):
+`bake_pbr2emission_v3_init.py:39,77`, `eval_vae_recon.py:17-18,84`. Names stay (Keep stable 12). Checks: the encode check, the VAE table; the bake's output
 `data/ckpt_init/pbr2emission_v3/{encoder,decoder}.safetensors` compared byte for byte.
 
 **Instructions:**
