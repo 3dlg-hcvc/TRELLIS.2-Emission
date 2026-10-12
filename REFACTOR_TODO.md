@@ -17,7 +17,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 6. Configs
 - [x] 7. Check setup: inference gate, VAE table, encode check, training check, noise baselines (no code change)
 - [x] 8. Our dataset and trainer files beside upstream's (D13)
-- [ ] 9. Coverage run (no code change)
+- [x] 9. Coverage run (no code change)
 - [ ] 10. The predictor `predict_emission_voxels_twostream.py`
 - [ ] 11. The chain scripts in `data_toolkit/`
 - [ ] 12. Our hooks out of upstream's `train.py`, `basic.py`, `callbacks.py` (D13)
@@ -523,7 +523,9 @@ paths, the elastic memory controller's branches, or `--pred_only`.
 
 **Instructions:**
 
-**Result:**
+**Result:** `script/internal/gate/coverage.sh` (coverage 7 from the texgen env; report in `C/coverage/after_step8/`).
+Never ran in our code: `EmissionVaeTrainer.prepare_dataloader`, `emission_helpers._read_vxz_as_sparse`, the predictor's
+parquet/split selection; the DiT trainer, multi-GPU, gradient accumulation and wandb are not covered here.
 
 ### 10. The predictor `predict_emission_voxels_twostream.py`
 

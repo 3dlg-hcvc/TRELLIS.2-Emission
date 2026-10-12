@@ -1,4 +1,5 @@
-"""Training-check hooks, loaded at interpreter start through PYTHONPATH by train-check.sh.
+"""Training-check hooks, loaded at interpreter start through PYTHONPATH by train-check.sh (and by
+coverage.sh, which sets COVERAGE_PROCESS_START to start line coverage in every process).
 
 Inactive unless TRELLIS2_TRAINCHECK_OUT names the record file (JSON lines). Then it:
 
@@ -19,6 +20,12 @@ import json
 import os
 
 _OUT = os.environ.get("TRELLIS2_TRAINCHECK_OUT")
+
+# coverage.sh: trace every Python process of a check (subprocesses included) when it names an rcfile.
+if os.environ.get("COVERAGE_PROCESS_START"):
+    import coverage
+
+    coverage.process_startup()
 
 
 def _seed_all(seed):
