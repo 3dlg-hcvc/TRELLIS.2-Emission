@@ -22,7 +22,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 11. The chain scripts in `data_toolkit/`
 - [x] 12. Our hooks out of upstream's `train.py`, `basic.py`, `callbacks.py` (D13)
 - [x] 13. The viewers in `vis/`
-- [ ] 14. Environment files
+- [x] 14. Environment files
 - [ ] 15. Release layer: generic entry points for LightgenBench users
 - [ ] 16. Docs
 - [ ] 17. Merge into `lightgen` (D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
@@ -629,21 +629,22 @@ Code unchanged (AST equal apart from docstrings), which replaces the HTML compar
 
 ### 14. Environment files
 
-- [ ] `setup.sh` (upstream's, our one change: the `libjpeg-dev` line commented out),
+- [x] `setup.sh` (upstream's, our one change: the `libjpeg-dev` line commented out),
   `script/alliance/build_env.sh` and `requirements-fir-2026-09-07.txt` (the release env): one
-  description that matches what runs.
-- [ ] The envs that run: workstation `trellis2` (Python 3.10, torch 2.6 + CUDA 12.4; o_voxel editable
+  description that matches what runs. Done: a table in `CLAUDE.md`; the files themselves unchanged.
+- [x] The envs that run: workstation `trellis2` (Python 3.10, torch 2.6 + CUDA 12.4; o_voxel editable
   through the symlink); Solar `~/envs/trellis2` (o_voxel rebuilt 2026-09-09; the bake, the release
   packing, `infer_solar.sbatch`); `trellis2-bw` on cs-venus-19 (Blackwell; the paper DiT); the
   Alliance `env/` venv (the release runs, torch 2.9); the sp4090 runtime pack.
-- [ ] The pins the release run used (`flash_attn`, `flex_gemm`, `cumesh`, transformers for DINOv3, ...)
+- [x] The pins the release run used (`flash_attn`, `flex_gemm`, `cumesh`, transformers for DINOv3, ...)
   as the invariant.
-- [ ] If a dependency goes, update the import probes: `script/alliance/{build_env,smoke_gpu}.sh`,
-  `../evaluation/newdata_eval/sweeps/star2/build_trellis2_bw.sbatch:199-214`.
+- [x] If a dependency goes, update the import probes: `script/alliance/{build_env,smoke_gpu}.sh`,
+  `../evaluation/newdata_eval/sweeps/star2/build_trellis2_bw.sbatch:199-214`. Not needed: no dependency went.
 
 **Instructions:**
 
-**Result:**
+**Result:** An "Environments that run this code" table in `CLAUDE.md`: the five envs, their versions (the workstation and Solar envs read
+directly, the Alliance venv from its requirements file) and what ran in each, plus what every env needs. No env file changed; step 16 moves the table into the README.
 
 ### 15. Release layer: generic entry points for LightgenBench users
 

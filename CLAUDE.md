@@ -16,6 +16,23 @@ TRELLIS.2-Lightning is a 4B-parameter 3D generative model using sparse voxel rep
 cd o-voxel && pip install -e . && cd ..
 ```
 
+### Environments that run this code
+
+| env | where | Python, torch | what ran in it |
+|---|---|---|---|
+| conda `trellis2` | workstation (cs-3dlg-23, RTX 4090) | 3.10.19, torch 2.6.0 + CUDA 12.4, transformers 5.1.0, flash_attn 2.7.3, lightning 2.6.1 | the paper's inference and VAE table, the refactor checks; o_voxel editable through `/localhome/dya78/code/TRELLIS.2-lightning` → this repo |
+| `~/envs/trellis2` (Solar shared home) | cs-venus L40S | the same versions; flex_gemm compiled for sm_89 (L40S) only; o_voxel editable from `~/code/o-voxel-src` | the DiT training check, `infer_solar.sbatch`, the data-preparation bake |
+| `trellis2-bw` (jupiter `trellis2_bw/eval_inputs/solar_dit_stage/trellis2bw_env.tar.gz`) | cs-venus-19 / -05, RTX PRO 6000 Blackwell | built by the parent's `evaluation/newdata_eval/sweeps/star2/build_trellis2_bw.sbatch` | the paper DiT's training |
+| venv `env/` (`script/internal/alliance/build_env.sh`) | Alliance H100 (fir, rorqual, nibi, killarney, tamia) | 3.11, torch 2.9.1, transformers 5.3.0, flash_attn 2.8.3, lightning 2.6.1; every pin in `script/internal/alliance/requirements-fir-2026-09-07.txt` | the release runs (VAE, encode, DiT) and the paper VAE (fir) |
+| runtime pack `t2lgb_sp4090/` | sp4090 (cs-3dlg-24, RTX 4090) | its own env and compiled o_voxel | release inference seeds, the paper gate |
+
+What every env needs: lightning 2.6 (the checkpoint callback's deferral and the callbacks rely on it);
+transformers 5.x, whose DINOv3 keeps its layers at `model.model.layer` (handled in
+`flow_matching/mixins/image_conditioned.py`); flex_gemm and o_voxel compiled for the GPU's architecture;
+and, in the Hugging Face cache, `microsoft/TRELLIS.2-4B` (the VAE's frozen PBR encoder, the DiT's finetune
+source, the shape/PBR latent encoders) and `facebook/dinov3-vitl16-pretrain-lvd1689m`. `setup.sh` is
+upstream's (our one change: the `sudo apt install libjpeg-dev` line is commented out).
+
 ## Training Commands
 
 ```bash
