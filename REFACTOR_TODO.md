@@ -723,14 +723,18 @@ TRELLIS.2's PBR VAE before the bake (a fresh cache failed). Tests 25 passed, 2 k
   other five). Accepted as noise (Dongchen). Also the Hugging Face path: `prepare_lightgenbench.sh`
   downloaded and unpacked the dataset, all 110,478 files identical to jupiter's `dataset_release`, and
   the release gate on that data 20/20 identical.
-- [ ] No job running from any `lightgen` checkout (Keep stable 15).
-- [ ] The merge into `lightgen` and the push (with the go).
-- [ ] In the parent, one commit: the pointer bump and the rename `TRELLIS2/` → `TRELLIS.2-Emission/` (`.gitmodules`, the
+- [x] No job running from any `lightgen` checkout (Keep stable 15). Done 2026-10-17: none on the workstation
+  or Solar; the Alliance logins were not open, so those were not looked at (the release runs ended 2026-09-22).
+- [x] The merge into `lightgen` and the push (with the go). Done 2026-10-17 (Dongchen's go): `lightgen`
+  fast-forwarded from `fdaba01` to this branch, then pushed.
+- [x] In the parent, one commit: the pointer bump and the rename `TRELLIS2/` → `TRELLIS.2-Emission/` (`.gitmodules`, the
   gitlink, the o_voxel symlink target, the Solar sbatch paths of Keep stable 1, every parent
-  reference: search again).
-- [ ] The parent's four callers of `data_toolkit/predict_emission.py` (`predict_emission_voxels_twostream.py`
-  before step 10): `evaluation/newdata_eval/sweeps/job_dit.sh`, `sweeps/star2/dit_worker.sbatch`,
-  `trellis2_release/infer_local.sh`, `trellis2_release/infer_solar.sbatch`; and the parent docs that name
+  reference: search again). Done 2026-10-17: the parent commit "TRELLIS2/ becomes TRELLIS.2-Emission/"; the
+  Solar sbatch paths stay (`$LG/TRELLIS2` on a node is where they unpack the frozen code tars, Keep stable 16).
+- [x] The parent's callers of `data_toolkit/predict_emission.py` (`predict_emission_voxels_twostream.py`
+  before step 10): `evaluation/newdata_eval/sweeps/job_dit.sh` and `trellis2_release/infer_local.sh`, the
+  two that run this checkout. `sweeps/star2/dit_worker.sbatch` and `trellis2_release/infer_solar.sbatch` run
+  the frozen code tars on jupiter, which keep the old name, so they stay. And the parent docs that name
   the renamed scripts by their old names: `docs/status/paper-supp-todo.md:39` (`bake_pbr2emission_v3_init.py`;
   the same sentence names the paper config step 6 deleted), `docs/status/checkpoints.md:988`
   (`encode_emission_twostream_dataset.py`), and the live docs naming the predictor.

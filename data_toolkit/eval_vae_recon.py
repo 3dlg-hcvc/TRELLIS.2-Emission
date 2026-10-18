@@ -53,7 +53,7 @@ Checkpoints resolve to `outputs/<run>/ckpts/<file>` (the local cache) and fall b
 jupiter copy under /cs/3dlg-jupiter-project/lightgen/outputs/<run>/ when the local one is
 absent (mmap over NFS reads only the ~3 GB of model tensors, not the optimizer state).
 
-Run (from TRELLIS2/, conda env `trellis2`):
+Run (from the repo root, conda env `trellis2`):
   conda run --no-capture-output -n trellis2 python data_toolkit/eval_vae_recon.py \
       --shapes ../evaluation/newdata_eval/eval_sets/test_agentic_clean.txt \
       --out_dir reports/vae_recon_test204 2>&1 | tee log/$(date +%Y%m%d-%H%M%S)-eval_vae_recon.log

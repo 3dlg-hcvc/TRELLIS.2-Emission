@@ -7,7 +7,7 @@
 set -euo pipefail
 C="${1:?commit}"; D="${2:?dest}"
 R=${GATE_REPO:-$(git -C "$(dirname "$0")" rev-parse --show-toplevel)}
-MAIN=$(realpath -e "${GATE_MAIN:-/local-scratch/localhome/dya78/code/lightgen/TRELLIS2}")
+MAIN=$(realpath -e "${GATE_MAIN:-/local-scratch/localhome/dya78/code/lightgen/TRELLIS.2-Emission}")
 [ -d "$MAIN/outputs" ] && [ -d "$MAIN/data" ] || { echo "no outputs/ or data/ in $MAIN" >&2; exit 2; }
 [ -e "$D" ] && { echo "$D exists" >&2; exit 2; }
 SHA=$(git -C "$R" rev-parse --verify "$C^{commit}")

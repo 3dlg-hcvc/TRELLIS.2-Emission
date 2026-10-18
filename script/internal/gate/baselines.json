@@ -4,7 +4,7 @@
   "paper_gate_204": {
    "runs": [
     "gate/pre-refactor_run1",
-    "/local-scratch/localhome/dya78/code/lightgen/TRELLIS2/outputs/restructure_gate/before"
+    "/local-scratch/localhome/dya78/code/lightgen/TRELLIS.2-Emission/outputs/restructure_gate/before"
    ],
    "noise": "zero (byte-identical, 2026-09-16 and 2026-10-12)"
   },

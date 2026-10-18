@@ -1,5 +1,5 @@
 #!/bin/bash
-# The training checks (train-check.sh) of one TRELLIS2 tree on one Solar node's L40S GPUs, one task per
+# The training checks (train-check.sh) of one TRELLIS.2-Emission tree on one Solar node's L40S GPUs, one task per
 # GPU at a time. GPU type = L40S; compare a record only with records of the same type (REFACTOR_TODO.md,
 # How we work). The shared Solar env ~/envs/trellis2 runs on sm_89 only; this job refuses other cards.
 #
@@ -7,7 +7,7 @@
 #   rsync -a <tree>/ star2:t2refactor/trees/<name>/ --exclude outputs --exclude data   (a tree.sh tree)
 #   rsync -a --delete script/internal/gate/ star2:t2refactor/tooling/gate/
 #   rsync -a --delete C/check_root/ star2:t2refactor/check_root/
-#   rsync -a TRELLIS2/data/ckpt_init/pbr2emission_v3/ star2:t2refactor/ckpt_init/pbr2emission_v3/   (once)
+#   rsync -a TRELLIS.2-Emission/data/ckpt_init/pbr2emission_v3/ star2:t2refactor/ckpt_init/pbr2emission_v3/   (once)
 # The resume checkpoints are read from jupiter (/3dlg-jupiter-project, read only): the release VAE's
 # ckpts/last.ckpt and the release DiT's snaps/last-step0050000.ckpt with their config.yaml.
 #
