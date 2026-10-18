@@ -713,8 +713,16 @@ TRELLIS.2's PBR VAE before the bake (a fresh cache failed). Tests 25 passed, 2 k
 
 ### 17. Merge into `lightgen` (D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
 
-- [ ] The full gate, the VAE table, the encode check and the training check on the branch head,
-  against the `pre-refactor` baselines; the tests.
+- [x] The full gate, the VAE table, the encode check and the training check on the branch head,
+  against the `pre-refactor` baselines; the tests. Done on `41a7e8d` (2026-10-17): paper gate 204/204
+  identical (sp4090), release gate 20/20, VAE table, encode check and VAE training fresh and resume
+  identical (workstation), tests 25 passed (2 known failures). DiT training on Solar L40S, 4 runs each
+  fresh and resume against 6 `pre-refactor` runs (two of them rerun that day): 7 of 8 within the bound, one
+  fresh run past it on `val/bin_6/mse` by 2.7e-4; the first-step loss exact in all, the runs interleave
+  with the old ones, and the rule fails unchanged code as often (2 of 12 old runs judged against the
+  other five). Accepted as noise (Dongchen). Also the Hugging Face path: `prepare_lightgenbench.sh`
+  downloaded and unpacked the dataset, all 110,478 files identical to jupiter's `dataset_release`, and
+  the release gate on that data 20/20 identical.
 - [ ] No job running from any `lightgen` checkout (Keep stable 15).
 - [ ] The merge into `lightgen` and the push (with the go).
 - [ ] In the parent, one commit: the pointer bump and the rename `TRELLIS2/` → `TRELLIS.2-Emission/` (`.gitmodules`, the
