@@ -25,8 +25,8 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 14. Environment files
 - [x] 15. Release layer: generic entry points for LightgenBench users
 - [x] 16. Docs
-- [ ] 17. Merge into `lightgen` (D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
-- [ ] 18. Cut-over to the new code (D8)
+- [x] 17. Merge into `lightgen` (D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
+- [ ] 18. Cut-over to the new code (D8): done 2026-10-17 except telling Kevin (Dongchen's call)
 
 ## How we work
 
@@ -738,7 +738,7 @@ TRELLIS.2's PBR VAE before the bake (a fresh cache failed). Tests 25 passed, 2 k
   the renamed scripts by their old names: `docs/status/paper-supp-todo.md:39` (`bake_pbr2emission_v3_init.py`;
   the same sentence names the paper config step 6 deleted), `docs/status/checkpoints.md:988`
   (`encode_emission_twostream_dataset.py`), and the live docs naming the predictor.
-- [ ] Parent docs: `AGENTS.md:31,45-47,54,65,152-163` (`:45-47`: the ~20 files with the old path are
+- [x] Parent docs: `AGENTS.md:31,45-47,54,65,152-163` (`:45-47`: the ~20 files with the old path are
   inside TRELLIS2, not in the parent, and step 2 deletes the live ones; the symlink stays for o_voxel),
   `.claude/rules/trellis2.md` (paths, scripts, trainer names; already stale: `:130` names `_v3` as
   the production config, `:140-148` lists only the `_v2` DiTs), `docs/baselines/trellis2.md:3-8` (`:8`
@@ -752,29 +752,51 @@ TRELLIS.2's PBR VAE before the bake (a fresh cache failed). Tests 25 passed, 2 k
   `archive/` and this repo's `docs/superpowers/`, still named by `.claude/rules/trellis2.md` (`archive/vis/`,
   the 74k encoding spec); the spec
   `docs/superpowers/specs/2026-09-16-trellis2-restructure-design.md:115` says the parent never
-  imports `trellis2` (it does: `build_trellis2_bw.sbatch`).
-- [ ] Outside the repo: step 5b moved the launchers to `script/internal/{alliance,star2}/`, which the
+  imports `trellis2` (it does: `build_trellis2_bw.sbatch`). Done in the parent commit above; left as written, being
+  records: `EXECUTION_LOG.md:74` (a log of what ran) and the dated spec (append-only).
+- [x] Outside the repo: step 5b moved the launchers to `script/internal/{alliance,star2}/`, which the
   compute-access skill names at `hedge.sh:31-32`, `references/shared/hedged-submission.md:34-35`,
   `references/shared/shell-and-ssh.md:30`, `references/star2/{bootstrap.md:36,recipes.md:72,overview.md:22,56}`,
   `references/alliance/overview.md:46,67` (and the parent's `AGENTS.md:65,152-153`); `SegviGen-emissive/emissive/infer/dump_pred_voxels_eval5.py:3` names
-  `bridge_voxel_to_uv.py` (another submodule, a docstring).
+  `bridge_voxel_to_uv.py` (another submodule, a docstring). Done in step 18 (the skill, `~/.claude` `63b6c96`, plus
+  `references/fir/overview.md:33`); `star2/{bootstrap.md:36,recipes.md:72,overview.md:56}` name `script/star2/<task>.sh`
+  as a placeholder for any project and stay; `SegviGen-emissive/` has left the parent.
 
 **Instructions:**
 
-**Result:**
+**Result:** `lightgen` = `9c5c40b`, pushed to `3dlg-hcvc/TRELLIS.2-lightning`. The parent commit `b361c50` (the
+directory is `TRELLIS.2-Emission/`) went to `dongchen-yang/lightgen` on 2026-10-17 inside the merge `3f689d4`.
 
 ### 18. Cut-over to the new code (D8)
 
-- [ ] Move the cluster checkouts to the merged code (star2, fir, Alliance: nibi, rorqual, killarney,
+- [x] Move the cluster checkouts to the merged code (star2, fir, Alliance: nibi, rorqual, killarney,
   tamia, trillium) and rebuild the Alliance `env/` if step 14 changed the requirements; repoint
-  `hedge.sh`.
-- [ ] The jupiter tars stay frozen; a new tar only for a new run.
-- [ ] Re-run `infer_local.sh`'s release smoke on the merged main checkout.
+  `hedge.sh`. Done 2026-10-17: the six Alliance clones (`~/scratch/TRELLIS.2-lightning` on fir, nibi,
+  rorqual, killarney, tamia, trillium-gpu) fast-forwarded on `lightgen` to `9c5c40b` (from `fdaba01` on
+  fir, rorqual and killarney, `2e10c7f` on nibi and tamia, `6ebbe83` on trillium); no job was running on any.
+  trillium's locally changed `script/alliance/build_env.sh` was the committed `b14db21` version (blob
+  `e07e2b4`), restored before the pull. Left as they were: the untracked `script/alliance/build_env_job.sh`
+  (the same file on five clusters, in no commit), fir's untracked `predict_twostream_submit.sh` (a 2026-07-01
+  one-off that calls the predictor's old name) and fir's stash (`example.py`). No `env/` rebuild: from each
+  clone's head to `9c5c40b` the requirements file only moved (identical), `o-voxel/` and `setup.sh` are
+  unchanged. `--dry-run` of the VAE and DiT stage launchers on all six: exit 0, every repo path in the job
+  files present; the PREFLIGHT notes are about data only (no release staged on trillium; the
+  emission-latents tar missing on nibi, tamia and trillium). Solar has no clone to move: the gate jobs rsync
+  a tree, the sweep workers and `infer_solar.sbatch` run frozen tars, and no launcher uses the per-node
+  `/localscratch/dya78/TRELLIS.2-lightning` copies of the August trainings since step 5b; they stay as
+  they are. `hedge.sh` keeps its clone paths; its example and the skill's launcher paths now name
+  `script/internal/alliance/` (`~/.claude` `63b6c96`).
+- [x] The jupiter tars stay frozen; a new tar only for a new run. Untouched.
+- [x] Re-run `infer_local.sh`'s release smoke on the merged main checkout. Done 2026-10-17 at `9c5c40b` on
+  the workstation 4090, `val snaps/last-step0050000.ckpt 0 8`, output to a scratch folder (the 2026-09-29
+  smoke tar of the same name exists): 8/8 shapes in 292 s. Against that Solar L40S tar (`pre-refactor`
+  code): coordinates equal, GT emission identical, predicted emission mean |d| per shape 2.4e-7 to 8.6e-4,
+  inside the measured L40S-vs-4090 bound (9e-4).
 - [ ] Tell Kevin (his fork imports private `lightgen_slat` helpers) — Dongchen's call.
 
 **Instructions:**
 
-**Result:**
+**Result:** the clusters run the merged code; only telling Kevin is open.
 
 ## Later, only if wanted (behavior changes, one step each)
 
