@@ -32,7 +32,7 @@ with no tests, no gate and no internal files (D10). Nothing is pushed ("just wor
 - [x] 17. Merge into `lightgen` (D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
 - [ ] 18. Cut-over to the new code (D8): done 2026-10-17 except telling Kevin (Dongchen's call)
 - [x] 19. Before the cut, on `lightgen`: the merged worktree, comments that name our machines
-- [ ] 19b. `_TRELLIS2_SITE` out of `vis/vis_utils.py` (D19; a behavior change)
+- [x] 19b. `_TRELLIS2_SITE` out of `vis/vis_utils.py` (D19; a behavior change)
 - [ ] 20. Tests, the gate and our internal files leave `lightgen` (D10, D18)
 - [ ] 21. Outside the repo: the parent's and the skill's references, three deletions
 
@@ -835,12 +835,13 @@ longer name our machines (AST equal apart from docstrings, so no GPU check).
 
 ### 19b. `_TRELLIS2_SITE` out of `vis/vis_utils.py` (D19)
 
-- [ ] Delete `vis/vis_utils.py:23-25`. Check: both viewers' `--help` and `from vis.vis_utils import ...` in
+- [x] Delete `vis/vis_utils.py:23-25`. Check: both viewers' `--help` and `from vis.vis_utils import ...` in
   the `trellis2` env.
 
 **Instructions:**
 
-**Result:**
+**Result:** `_TRELLIS2_SITE` and its `sys.path` insert removed. In the `trellis2` env the six names the parent imports
+from `vis.vis_utils` import and both viewers print `--help`.
 
 ### 20. Tests, the gate and our internal files leave `lightgen` (D10, D18)
 

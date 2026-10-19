@@ -20,10 +20,6 @@ _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-_TRELLIS2_SITE = "/localhome/dya78/software/miniconda3/envs/trellis2/lib/python3.10/site-packages"
-if os.path.isdir(_TRELLIS2_SITE) and _TRELLIS2_SITE not in sys.path:
-    sys.path.insert(0, _TRELLIS2_SITE)
-
 # Stub submodules o_voxel tries to import that we don't need here.
 for _m in ("o_voxel.postprocess", "o_voxel.rasterize"):
     if _m not in sys.modules:
