@@ -6,6 +6,10 @@ own beside upstream's (the LightGen part kept separate from upstream's PBR part)
 points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/REFACTOR_TODO.md` (branch
 `refactor`); the rules below are the same unless a line says otherwise.
 
+Steps 19-21 (Dongchen 2026-10-18: "remove the unneeded testing or gating files and have our repo like the
+original TRELLIS2-Lighting or TRELLIS2 repo"): `lightgen` becomes upstream's tree plus our emission code,
+with no tests, no gate and no internal files (D10). Nothing is pushed ("just work on the lightgen branch").
+
 ## Progress
 
 - [x] 1. Housekeeping
@@ -27,6 +31,10 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
 - [x] 16. Docs
 - [x] 17. Merge into `lightgen` (D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
 - [ ] 18. Cut-over to the new code (D8): done 2026-10-17 except telling Kevin (Dongchen's call)
+- [ ] 19. Before the cut, on `lightgen`: the merged worktree, comments that name our machines
+- [ ] 19b. `_TRELLIS2_SITE` out of `vis/vis_utils.py` (D19; a behavior change)
+- [ ] 20. Tests, the gate and our internal files leave `lightgen` (D10, D18)
+- [ ] 21. Outside the repo: the parent's and the skill's references, three deletions
 
 ## How we work
 
@@ -37,6 +45,7 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
   merge. A step whose checks pass is committed and reported; its **Result** is at most three lines
   (what changed, commits, verdict), decisions taken inside a step go to its Result and its commit
   message. Step 17 (the merge) waits for his review and go. Dongchen can add **Instructions** to any step.
+  Steps 19-21 run back to back (D10, D18, D19 and step 21's items answered 2026-10-18); no push.
 - Within a step, stop and ask only for: (1) an open decision the step needs; (2) a check that fails, unless the
   cause is an obvious slip in the step; (3) something the plan does not cover (a needed fix, a
   behavior change, a file outside the step's list); (4) an action outside the worktree and our
@@ -70,9 +79,9 @@ points for LightgenBench users. Modeled on `TEXGen/.claude/worktrees/refactor/RE
   in the same commit. Parent docs (`AGENTS.md`, `.claude/rules/trellis2.md`, `docs/baselines/trellis2.md`,
   `docs/status/checkpoints.md`, `docs/evaluation.md`) describe `lightgen` and change only at the
   merge: a step that makes one stale adds an item to step 17's parent-docs list.
-- All edits happen in the worktree `.claude/worktrees/trellis2-emission-refactor` (branch
-  `trellis2-emission-refactor`, from tag `pre-refactor` = `fdaba01`); `git diff pre-refactor` shows
-  every edit. The main checkout stays on `lightgen`.
+- Steps 1-16 were made in the worktree `.claude/worktrees/trellis2-emission-refactor` (branch
+  `trellis2-emission-refactor`, from tag `pre-refactor` = `fdaba01`) and merged into `lightgen` at step 17;
+  `git diff pre-refactor` shows every edit. From step 19: commits on `lightgen` in the main checkout.
 - In the main checkout: never `git add -A` and never `git clean -x`/`-X`: its ignored `outputs/`
   (47 GB: the paper checkpoints, `restructure_gate/`) and `data/` (13 GB: the paper's emission
   latents, `ckpt_init/`) hold files the gate needs.
@@ -248,9 +257,12 @@ Carried over from TEXGen (say if one does not apply here):
 - D9 Upstream code we do not use stays untouched, files and blocks alike (upstream's configs, among them
   `slat_flow_imgshape2tex_dit_1_3B_512_bf16.yaml`, the DiT's finetune source; upstream's
   `data_toolkit/` scripts; models, pipelines, samplers, the demo files `app*.py`, `example*.py`, `assets/` (D12).
-- D10 (open, before publishing) Internal scripts in the published code: `script/internal/` holds our
-  Slurm accounts and paths. Publish as is, publish a snapshot without it, or move it to the parent
-  repo? Recommended: a published snapshot without it.
+- [x] D10 Internal files in the published code: `script/internal/` holds our Slurm accounts and paths, and
+  the tests, `reports/`, `CLAUDE.md` and this plan are ours alone. Dongchen 2026-10-18: `lightgen` itself is
+  cleaned, no `release` branch, no push. Tag `checks-tooling` (local) keeps the last commit with them;
+  this plan moves to `../docs/status/trellis2-refactor.md`, `reports/` to `../docs/baselines/trellis2/`,
+  `CLAUDE.md`'s notes into `../.claude/rules/trellis2.md` (all uncommitted in the parent). The six Alliance
+  clones stay at `9c5c40b` with their launchers until a push; a new run there restores them from the tag.
 
 New for TRELLIS2 (Dongchen's answers of 2026-10-10; all answered):
 
@@ -285,6 +297,16 @@ New for TRELLIS2 (Dongchen's answers of 2026-10-10; all answered):
   the `--ckpt last` fixes are listed under Later.
 - [x] D17 Only the release launchers and configs stay, as in TEXGen; the paper runs' `config.yaml` on
   jupiter (and `config.workstation.yaml` locally) are their record.
+
+New for the cleanup (Dongchen's answers of 2026-10-18):
+
+- [x] D18 `data_toolkit/eval_vae_recon.py` goes with its test (step 20). It scores the paper's VAE runs
+  (`SETS:100-104` names their run dirs; `:92` falls back to jupiter) and the release chain does not use it.
+- [x] D19 `vis/vis_utils.py:23-25` `_TRELLIS2_SITE` (our home path, put on `sys.path` when it exists) goes
+  (step 19b): the viewers run in the `trellis2` env, where the line already does nothing.
+- [ ] D20 (open, at publishing) How the code goes public. `3dlg-hcvc/TRELLIS.2-lightning` is private, and
+  `lightgen`'s history still holds every internal file ever committed and the 370 MB of `debug_outputs/`
+  blobs. Recommended: publish the cleaned tree as one commit with no history in a public repo of its own.
 
 ## Done
 
@@ -798,6 +820,78 @@ directory is `TRELLIS.2-Emission/`) went to `dongchen-yang/lightgen` on 2026-10-
 
 **Result:** the clusters run the merged code; only telling Kevin is open.
 
+### 19. Before the cleanup, on `lightgen` (main checkout; no behavior change)
+
+- [ ] Remove the merged worktree `.claude/worktrees/trellis2-emission-refactor` and its local branch
+  (`9c5c40b`, contained in `lightgen`, never pushed). Tag `pre-refactor` stays.
+- [ ] Comments that name our machines in kept code: `data_toolkit/init_emission_vae_from_pbr_vae.py:116-117`
+  (venus-19's Hugging Face cache), `vis/vis_3d_dit.py:216-217` (aspis, `/local-scratch`). Check: AST equal
+  apart from docstrings.
+
+**Instructions:**
+
+**Result:**
+
+### 19b. `_TRELLIS2_SITE` out of `vis/vis_utils.py` (D19)
+
+- [ ] Delete `vis/vis_utils.py:23-25`. Check: both viewers' `--help` and `from vis.vis_utils import ...` in
+  the `trellis2` env.
+
+**Instructions:**
+
+**Result:**
+
+### 20. Tests, the gate and our internal files leave `lightgen` (D10, D18)
+
+- [ ] Tag the `lightgen` head `checks-tooling` (local): the last commit with the tooling. Later checks run
+  the tag's `script/internal/gate/` from an extracted copy (`GATE_REPO` = this repo).
+- [ ] Copied to the parent first (uncommitted there): this plan → `../docs/status/trellis2-refactor.md`,
+  `reports/` → `../docs/baselines/trellis2/`, `CLAUDE.md`'s notes merged into `../.claude/rules/trellis2.md`.
+- [ ] Delete, one commit (42 files, 5,719 lines):
+  - `script/internal/` (30: `gate/` 20, `alliance/` 9, `star2/backup_run.sh`);
+  - the tests `data_toolkit/test_{eval_vae_recon,emission_vae_resume,checkpoint_cadence}.py` and
+    `vis/vis_utils_test.py` (upstream ships none; `vis_utils_test.py` needs a fixture we do not ship);
+  - `reports/` (5 files) and, per D18, `data_toolkit/eval_vae_recon.py`;
+  - `CLAUDE.md`, `REFACTOR_TODO.md`.
+
+  Left beside upstream's tree: our 18 files (the release configs, 7 `data_toolkit/` chain scripts, 4 in
+  `trellis2/`, `vis/` 3, `script/lightgenbench/` 2) and the 16 upstream files we edit (step 12, D14).
+- [ ] Text that names the deleted files, a second commit: README's `script/internal/` row and its
+  `eval_vae_recon.py` mention (`README.md:156,159`); the release configs' header comments
+  (`configs/{scvae,gen}/emission_*_lightgenbench_v1.yaml:4`) name `script/lightgenbench/run_chain.sh`
+  instead of `script/internal/alliance/lightgenbench_v1.sh`. `.gitignore` stays.
+- [ ] Checks (no code file changes, so no training check): `git diff --stat checks-tooling lightgen` shows
+  only the deletions and those lines; outside `o-voxel/`, no file names our paths or files (`/cs/3dlg`,
+  `/localhome`, `/local-scratch`, `dya78`, `msavva`, `jupiter`, `cs-venus`, `script/internal`, `CLAUDE.md`,
+  `REFACTOR_TODO`); `train.py --help`, `run_chain.sh` usage and the viewers' `--help`; the release gate
+  (20 shapes, workstation 4090) on the new head with the tag's tooling, identical to its baseline.
+- No push (Dongchen 2026-10-18).
+
+**Instructions:**
+
+**Result:**
+
+### 21. Outside the repo
+
+- [ ] Parent references, edited and left uncommitted: `../AGENTS.md:152-164` (`backup_run.sh` → the
+  compute-access skill's byte-identical copy; the Alliance launchers → tag `checks-tooling`) and its
+  doc-index row naming `CLAUDE.md`, `../.claude/rules/trellis2.md`, `../docs/baselines/trellis2.md:6`,
+  `../docs/status/refactor.md:24`, `../docs/evaluation.md:446-447`. The compute-access skill's three
+  mentions of `script/internal/alliance/` (a commit in `~/.claude`).
+- [ ] Delete the two test runs logged online to wandb `LightGen` on 2026-10-12 under the release run names
+  (`rak5cwl8`, `pyc9t7fr`), after checking they are the test runs.
+- [ ] Three untracked folders in the parent root from 2026-09-21, `firh_trellis2/`, `killarneyh_trellis2/`
+  and ` fir killarneyh_trellis2/` (leading space: a cluster loop zsh did not split), 3 files each: the release
+  emission latents' `.tar.sha256`, `normalization_stats_*.json`, `.provenance.txt`. Delete them if they
+  match jupiter's copies.
+- [ ] Check data on the workstation (51 GB in `C`): delete step 17's Hugging Face check inputs `C/hf_download/`
+  and `C/hf_root/` (15 GB each, downloadable again). The runs `baselines.json` names stay
+  (`outputs/restructure_gate/before` is one of them).
+
+**Instructions:** Dongchen 2026-10-18: go for all three deletions.
+
+**Result:**
+
 ## Later, only if wanted (behavior changes, one step each)
 
 - [ ] **`_pick_checkpoint` prefers `last.ckpt`** (`vis/vis_utils.py:272`): require a named file.
@@ -815,8 +909,8 @@ directory is `TRELLIS.2-Emission/`) went to `dongchen-yang/lightgen` on 2026-10-
 - [ ] **Our dataset reader → upstream's base classes** (if step 8 shows a difference).
 - [ ] **Upstream fixes offered upstream** (step 12): `ResumableSampler.set_epoch`, `val_dataloader` → `[]`,
   the DINOv3 layer path, the `.safetensors` and Hugging Face path load.
-- [ ] **Hardcoded paths left by steps 10–13**: `vis/vis_utils.py:23` `_TRELLIS2_SITE`; the jupiter
-  fallback in `eval_vae_recon.py`.
+- [x] **Hardcoded paths left by steps 10–13**: `eval_vae_recon.py` goes in step 20 (D18), `_TRELLIS2_SITE`
+  in step 19b (D19).
 - [ ] **Code no run reaches** (step 9): `emission_helpers._read_vxz_as_sparse`.
 - [ ] **`dual_grid_from_glb.py`'s own loader** (step 15): float32 normalization and the first node of each
   mesh only; the release grids need `--loader lightgenbench`. Make that the default, or port the loader here?
