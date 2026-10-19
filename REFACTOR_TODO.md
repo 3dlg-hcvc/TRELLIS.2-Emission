@@ -31,7 +31,7 @@ with no tests, no gate and no internal files (D10). Nothing is pushed ("just wor
 - [x] 16. Docs
 - [x] 17. Merge into `lightgen` (D11) and the rename to `TRELLIS.2-Emission/` (D4) (needs Dongchen's go)
 - [ ] 18. Cut-over to the new code (D8): done 2026-10-17 except telling Kevin (Dongchen's call)
-- [ ] 19. Before the cut, on `lightgen`: the merged worktree, comments that name our machines
+- [x] 19. Before the cut, on `lightgen`: the merged worktree, comments that name our machines
 - [ ] 19b. `_TRELLIS2_SITE` out of `vis/vis_utils.py` (D19; a behavior change)
 - [ ] 20. Tests, the gate and our internal files leave `lightgen` (D10, D18)
 - [ ] 21. Outside the repo: the parent's and the skill's references, three deletions
@@ -822,15 +822,16 @@ directory is `TRELLIS.2-Emission/`) went to `dongchen-yang/lightgen` on 2026-10-
 
 ### 19. Before the cleanup, on `lightgen` (main checkout; no behavior change)
 
-- [ ] Remove the merged worktree `.claude/worktrees/trellis2-emission-refactor` and its local branch
+- [x] Remove the merged worktree `.claude/worktrees/trellis2-emission-refactor` and its local branch
   (`9c5c40b`, contained in `lightgen`, never pushed). Tag `pre-refactor` stays.
-- [ ] Comments that name our machines in kept code: `data_toolkit/init_emission_vae_from_pbr_vae.py:116-117`
+- [x] Comments that name our machines in kept code: `data_toolkit/init_emission_vae_from_pbr_vae.py:116-117`
   (venus-19's Hugging Face cache), `vis/vis_3d_dit.py:216-217` (aspis, `/local-scratch`). Check: AST equal
   apart from docstrings.
 
 **Instructions:**
 
-**Result:**
+**Result:** Worktree (ignored caches only) and branch `trellis2-emission-refactor` removed; the two docstrings no
+longer name our machines (AST equal apart from docstrings, so no GPU check).
 
 ### 19b. `_TRELLIS2_SITE` out of `vis/vis_utils.py` (D19)
 

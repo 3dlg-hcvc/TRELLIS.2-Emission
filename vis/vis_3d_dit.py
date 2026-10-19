@@ -214,7 +214,7 @@ def main():
         """Copy GLB into <out_dir>/assets/glbs/ and return a relative URL.
 
         Real file copies (not symlinks) so the HTML+assets bundle is portable
-        to web servers like aspis where /local-scratch isn't visible.
+        to a web server that cannot see the source disk.
         """
         import shutil as _sh
         basename = os.path.basename(glb_path)

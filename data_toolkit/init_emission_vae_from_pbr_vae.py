@@ -113,8 +113,8 @@ def bake_decoder(sd: dict) -> dict:
 def resolve_hub(short_id: str) -> str:
     """Resolve a hub short-id to a local .safetensors, honouring HF_HOME.
 
-    venus-19's HF cache was relocated to /localscratch/dya78/hf_home after its
-    root filesystem filled, so a hardcoded ~/.cache/huggingface is not portable.
+    A cluster node may keep its HF cache outside the home directory, so a
+    hardcoded ~/.cache/huggingface is not portable.
     HF_HOME is checked first, then the default; `~` is only a fallback.
     """
     parts = short_id.split("/")
