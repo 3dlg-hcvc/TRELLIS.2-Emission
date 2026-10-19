@@ -153,10 +153,9 @@ The benchmark's own scoring, on points sampled on the mesh surface, is not part 
 | `trellis2/` | models, datasets, trainers (TRELLIS.2's package; ours in files of their own, our training callbacks at the end of `trainers/callbacks.py`) |
 | `train.py` | training entry point (`--config`, `--output_dir`, `--override key=value`) |
 | `script/lightgenbench/` | `prepare_lightgenbench.sh`, `run_chain.sh`: everything above |
-| `data_toolkit/` | TRELLIS.2's data scripts, and ours: the VAE start point, the encoders, the predictor, the index, `eval_vae_recon.py` |
+| `data_toolkit/` | TRELLIS.2's data scripts, and ours: the VAE start point, the encoders, the predictor, the index |
 | `vis/` | interactive 3D viewers of VAE reconstructions and DiT samples (one HTML page, a menu of shapes) |
 | `o-voxel/` | TRELLIS.2's voxel library (with emission) |
-| `script/internal/` | our cluster launchers and regression checks; not needed to use the code |
 | `example.py`, `example_texturing.py`, `app.py`, `app_texturing.py` | TRELLIS.2's image-to-3D and texturing demos, unchanged ([their usage](https://github.com/microsoft/TRELLIS.2#-usage)) |
 
 ## License
