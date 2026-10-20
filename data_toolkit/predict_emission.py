@@ -3,7 +3,7 @@
 
 Runs the emission DiT (in=96, skip_pbr_cond=false) and saves per-shape emission voxels
 (coords, pred, and gt_recon, gt_emission unless --pred_only) as npz under <out_dir>/pred_voxels/,
-the layout the parent repo's point-sampled evaluator reads (--voxel_pred_root).
+the layout the parent repo's point-sampled evaluator reads (--pred_root, --pred_format voxels).
 
   * the emission encoder takes the raw 3-channel emission;
   * conditioning is 96 channels: [emission_noise(32), shape(32), pbr(32)], so
