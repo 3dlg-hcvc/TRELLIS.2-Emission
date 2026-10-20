@@ -11,7 +11,7 @@ vertices and faces loaded here. No segmentation labels (a GLB has none).
 --glb_root     where the GLBs are: each `glb_1k_path` is relative to it; without that column, a TexVerse-1K
                download (Hugging Face YiboZhang2001/TexVerse-1K), whose GLBs are glbs/glbs_1k/<group>/<sha>_1024.glb.
 --loader       how a GLB becomes one mesh. `trimesh` (default): load_mesh_from_glb below. `lightgenbench`:
-               the loader LightgenBench's data preparation uses (data_processing/representations/loader.py of
+               the loader LightgenBench's data preparation uses (data_processing/representations/utils.py of
                the lightgen repository, --lightgen_repo, default the directory that holds this repository);
                LightgenBench's shape latents were encoded from its grids. Both give the same cells, but the
                `vertices` attribute differs on hundreds of cells per shape.
@@ -113,11 +113,10 @@ def process_one(sha: str, glb_path: str, out_dir: str, res: int) -> dict:
 
 def lightgenbench_loader(lightgen_repo: str):
     """LightgenBench's mesh loader: load_and_merge, then the tight normalize to [-0.5, 0.5]^3 in float64."""
-    if not os.path.isfile(os.path.join(lightgen_repo, "data_processing", "representations", "loader.py")):
-        sys.exit(f"no data_processing/representations/loader.py under {lightgen_repo}: pass --lightgen_repo")
+    if not os.path.isfile(os.path.join(lightgen_repo, "data_processing", "representations", "utils.py")):
+        sys.exit(f"no data_processing/representations/utils.py under {lightgen_repo}: pass --lightgen_repo")
     sys.path.insert(0, lightgen_repo)
-    from data_processing.representations.contract import TIGHT_SCALE_NUM
-    from data_processing.representations.loader import load_and_merge
+    from data_processing.representations.utils import TIGHT_SCALE_NUM, load_and_merge
 
     def load(glb_path: str):
         b = load_and_merge(glb_path)
