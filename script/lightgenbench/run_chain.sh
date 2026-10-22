@@ -1,7 +1,7 @@
 #!/bin/bash
 # The pbr->emission chain on LightgenBench, one stage per call, in the order below:
 #
-#   TEXVERSE_1K=<dir> bash script/lightgenbench/run_chain.sh latents <data_root>   # shape + PBR latents
+#   bash script/lightgenbench/run_chain.sh latents <data_root>                     # shape + PBR latents
 #   bash script/lightgenbench/run_chain.sh vae <data_root>                         # bake the init, train the VAE
 #   VAE_CKPT=<ckpt> bash script/lightgenbench/run_chain.sh encode <data_root>      # emission latents + their stats
 #   bash script/lightgenbench/run_chain.sh dit <data_root>                         # train the DiT
@@ -17,8 +17,10 @@
 # env: NUM_GPUS (4); BS (16 for the VAE, 8 for the DiT; another global batch than the release's is
 #      refused unless ANY_BATCH=1); MAX_STEPS; OUTPUTS (outputs: runs land in <OUTPUTS>/<config name>);
 #      RESUME=1 to continue a run directory that holds checkpoints (a resume skips the finetune load,
-#      so a first launch must start empty); WORKERS (latents: dual-grid processes, 8); LIGHTGEN_REPO
-#      (latents: the lightgen repo, default the directory holding this repo); SEED (predict, 0);
+#      so a first launch must start empty); TEXVERSE_1K (latents: a TexVerse-1K download, read only for
+#      shapes without a dual grid in <data_root>/dual_grid_256, which are built from their GLBs);
+#      WORKERS (latents: dual-grid processes, 8); LIGHTGEN_REPO (latents, building a dual grid: the
+#      lightgen repo, default the directory holding this repo); SEED (predict, 0);
 #      PRED_OUT (predict: <OUTPUTS>/predict_test_seed<SEED>); CHAIN_TMPDIR (below). wandb runs offline
 #      unless logged in.
 # Each call tees its output to log/<TS>-lightgenbench_<stage>.log. Run from anywhere; it works in the repo root.
@@ -73,6 +75,12 @@ print(msg, flush=True)
 os._exit(1 if missing or bad else 0)   # not sys.exit: pyarrow's teardown can abort at exit
 PY
 }
+missing() {  # <dir> <extension>: how many shapes of the index have no file there
+  python -c 'import os, sys, pandas as pd
+d, ext = sys.argv[2:4]
+print(sum(not os.path.exists(os.path.join(d, f"{u}.{ext}")) for u in pd.read_parquet(sys.argv[1]).index.astype(str)), flush=True)
+os._exit(0)' "$INDEX" "$1" "$2"
+}
 # GPUs: the caller's CUDA_VISIBLE_DEVICES (a scheduler's allocation), else 0..NUM_GPUS-1
 IFS=, read -ra GPUS <<< "${CUDA_VISIBLE_DEVICES:-$(seq -s, 0 $((NUM_GPUS - 1)))}"
 per_gpu() {  # <command...>: once per GPU with --rank/--world_size; need() after it decides
@@ -111,16 +119,21 @@ train() {  # <config> <run name> <per-GPU batch> <release global batch> <checkpo
 
 case "$STAGE" in
   latents)
-    [ -n "${TEXVERSE_1K:-}" ] || fail "set TEXVERSE_1K to a TexVerse-1K download (glbs/glbs_1k/<group>/<uuid>_1024.glb)"
     need "$ROOT/pbr_voxels_256" vxz
-    W=${WORKERS:-8}; pids=(); bad=0
-    for r in $(seq 0 $((W - 1))); do
-      python -u data_toolkit/dual_grid_from_glb.py --parquet "$INDEX" --glb_root "$TEXVERSE_1K" --out_root "$ROOT" \
-        --loader lightgenbench --check_cells ${LIGHTGEN_REPO:+--lightgen_repo "$LIGHTGEN_REPO"} \
-        --rank "$r" --world_size "$W" & pids+=($!)
-    done
-    for p in "${pids[@]}"; do wait "$p" || bad=1; done
-    [ $bad -eq 0 ] || echo "[chain] a dual-grid process failed; failed shapes are in $ROOT/dual_grid_256/failed_rank*.txt"
+    # The dual grids come with the dataset (prepare_lightgenbench.sh); a shape without one is built from its GLB.
+    N_DG=$(missing "$ROOT/dual_grid_256" vxz) || fail "could not read $INDEX"
+    if [ "$N_DG" -gt 0 ]; then
+      [ -n "${TEXVERSE_1K:-}" ] || fail "$N_DG shapes have no dual grid in $ROOT/dual_grid_256: set TEXVERSE_1K to a TexVerse-1K download (glbs/glbs_1k/<group>/<uuid>_1024.glb) to build them from their GLBs"
+      echo "[chain] building the dual grids of $N_DG shapes from $TEXVERSE_1K"
+      W=${WORKERS:-8}; pids=(); bad=0
+      for r in $(seq 0 $((W - 1))); do
+        python -u data_toolkit/dual_grid_from_glb.py --parquet "$INDEX" --glb_root "$TEXVERSE_1K" --out_root "$ROOT" \
+          --loader lightgenbench --check_cells ${LIGHTGEN_REPO:+--lightgen_repo "$LIGHTGEN_REPO"} \
+          --rank "$r" --world_size "$W" & pids+=($!)
+      done
+      for p in "${pids[@]}"; do wait "$p" || bad=1; done
+      [ $bad -eq 0 ] || echo "[chain] a dual-grid process failed; failed shapes are in $ROOT/dual_grid_256/failed_rank*.txt"
+    fi
     need "$ROOT/dual_grid_256" vxz
     per_gpu python -u data_toolkit/encode_shape_from_dual_grid.py --data_root "$ROOT" --parquet "$INDEX" --resolution 256
     per_gpu python -u data_toolkit/encode_pbr_from_voxels.py --data_root "$ROOT" --parquet "$INDEX" --resolution 256

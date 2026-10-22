@@ -18,17 +18,16 @@ pip install lightning==2.6.1 pyarrow wandb
 
 ## Data Setup
 The dataset download is described at https://github.com/3dlg-hcvc/lightgenbench.
-Prepare the voxels and thumbnails, then compute the shape and PBR latents from the source GLBs of [TexVerse-1K](https://huggingface.co/datasets/YiboZhang2001/TexVerse-1K):
+Prepare the voxels, dual grids and thumbnails, then compute the shape and PBR latents from them:
 ```bash
-# Download the voxels and thumbnails into <download_dir>, check them, and unpack them into <data_root>
+# Download the voxels, dual grids and thumbnails into <download_dir>, check them, and unpack them into <data_root>
 # (SKIP_DOWNLOAD=1 uses the files already in <download_dir>)
 bash script/lightgenbench/prepare_lightgenbench.sh <download_dir> <data_root>
 
-# Compute the shape and PBR latents; <texverse_dir> holds glbs/glbs_1k/<group>/<uuid>_1024.glb
-# (this step uses the LightGenBench repository's mesh loader: by default the folder that holds this
-# repository, or set LIGHTGEN_REPO=<dir>)
-TEXVERSE_1K=<texverse_dir> bash script/lightgenbench/run_chain.sh latents <data_root>
+# Compute the shape latents from the dual grids and the PBR latents from the voxels
+bash script/lightgenbench/run_chain.sh latents <data_root>
 ```
+A shape without a dual grid in `<data_root>/dual_grid_256/` is built from its [TexVerse-1K](https://huggingface.co/datasets/YiboZhang2001/TexVerse-1K) GLB when `TEXVERSE_1K=<dir>` is set.
 
 
 ## Training
