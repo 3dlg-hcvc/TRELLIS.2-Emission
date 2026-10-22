@@ -35,7 +35,7 @@ A shape without a dual grid in `<data_root>/dual_grid_256/` is built from its [T
 
 
 ## Prediction with Our Checkpoint
-This needs the Environment Setup and Data Setup above; our VAE and DiT checkpoints are coming soon in the Hugging Face repo `3dlg-hcvc/LightgenBench-baselines`.
+This needs the Environment Setup and Data Setup above; our VAE and DiT checkpoints are in the Hugging Face repo [`3dlg-hcvc/LightgenBench-baselines`](https://huggingface.co/3dlg-hcvc/LightgenBench-baselines/tree/main/TRELLIS.2-Emission).
 Predict the emission of the test split with them:
 ```bash
 # Download our VAE and DiT checkpoints, each with its config, into checkpoints/TRELLIS.2-Emission/
