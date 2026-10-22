@@ -13,10 +13,10 @@ from ...utils.loss_utils import l1_loss, l2_loss
 
 class EmissionVaeTrainer(BasicTrainer):
     """
-    Trainer for the emission VAE with Option B conditioning:
+    Trainer for the emission VAE with material conditioning:
     material latent concatenated to emission latent before decoding.
 
-    Architecture (paper-aligned):
+    Architecture:
         Emission encoder (trainable):  emission voxels [N,3] → emission latent [M, C_e]
         PBR encoder (frozen, pretrained): PBR voxels [N,6] → material latent [M, C_m]
         Emission decoder (trainable):  concat([emit_lat, mat_lat]) [M, C_e+C_m] → emission [N,3]

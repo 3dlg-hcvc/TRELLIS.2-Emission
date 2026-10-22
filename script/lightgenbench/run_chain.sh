@@ -8,13 +8,11 @@
 #   VAE_CKPT=<ckpt> DIT_CKPT=<ckpt> bash script/lightgenbench/run_chain.sh predict <data_root>   # the test split
 #
 # <data_root> is prepare_lightgenbench.sh's output; arguments after it go to train.py (vae, dit), such as
-# --override trainer.args.dataloader_num_workers=4. The recipe is the release run's: the configs
+# --override trainer.args.dataloader_num_workers=4. The configs are
 # configs/scvae/emission_vae_pbr2emission_lightgenbench_v1.yaml (VAE, 35,800 steps) and
-# configs/gen/emission_dit_pbr2emission_lightgenbench_v1.yaml (DiT, 50,000 steps), trained on 4 H100
-# 80 GB GPUs with 16 shapes per GPU for the VAE (global 64; the config says 32) and 8 for the DiT
-# (global 32). The release encoded with the VAE checkpoint of lowest val/loss (step0035400-0.0036)
-# and predicted with the DiT's last checkpoint (step 50,000). A checkpoint is always named: nothing
-# here picks one.
+# configs/gen/emission_dit_pbr2emission_lightgenbench_v1.yaml (DiT, 50,000 steps); by default the VAE
+# trains with 16 shapes per GPU on 4 GPUs (global 64; the config says 32) and the DiT with 8 per GPU
+# (global 32). A checkpoint is always named: nothing here picks one.
 #
 # env: NUM_GPUS (4); BS (16 for the VAE, 8 for the DiT; another global batch than the release's is
 #      refused unless ANY_BATCH=1); MAX_STEPS; OUTPUTS (outputs: runs land in <OUTPUTS>/<config name>);
@@ -72,7 +70,7 @@ if missing:
 if bad:
     msg += f"; {len(bad)} unreadable, delete them and rerun the stage: {' '.join(bad[:5])}"
 print(msg, flush=True)
-os._exit(1 if missing or bad else 0)   # not sys.exit: pyarrow's teardown aborted at exit once (2026-10-12)
+os._exit(1 if missing or bad else 0)   # not sys.exit: pyarrow's teardown can abort at exit
 PY
 }
 # GPUs: the caller's CUDA_VISIBLE_DEVICES (a scheduler's allocation), else 0..NUM_GPUS-1
@@ -145,7 +143,7 @@ PY
     train "$CFG" "$VAE_NAME" "${BS:-16}" 64 15
     ;;
   encode)
-    [ -n "${VAE_CKPT:-}" ] || { ls "$OUTPUTS/$VAE_NAME/ckpts" 2>/dev/null; fail "set VAE_CKPT (the release used the lowest val/loss)"; }
+    [ -n "${VAE_CKPT:-}" ] || { ls "$OUTPUTS/$VAE_NAME/ckpts" 2>/dev/null; fail "set VAE_CKPT (the checkpoint of lowest val/loss)"; }
     VCFG=$(ckpt_cfg "$VAE_CKPT")
     need "$ROOT/emission_voxels_256" vxz; need "$ROOT/pbr_voxels_256" vxz
     # The encoder keeps latents already on disk, so a folder must hold one VAE's latents only.
@@ -182,7 +180,7 @@ PY
     train "$CFG" "$DIT_NAME" "${BS:-8}" 32 22 --override dataset.args.thumbnail_dir="$ROOT/thumbnails"
     ;;
   predict)
-    [ -n "${VAE_CKPT:-}" ] && [ -n "${DIT_CKPT:-}" ] || fail "set VAE_CKPT and DIT_CKPT (the release: the VAE the latents came from, the DiT's last checkpoint)"
+    [ -n "${VAE_CKPT:-}" ] && [ -n "${DIT_CKPT:-}" ] || fail "set VAE_CKPT and DIT_CKPT (the VAE the latents came from, and a DiT checkpoint)"
     need "$ROOT/thumbnails" png; need "$SHAPE_DIR" npz; need "$PBR_DIR" npz; need "$ROOT/emission_voxels_256" vxz
     SEED=${SEED:-0}; OUT=${PRED_OUT:-$OUTPUTS/predict_test_seed$SEED}
     SHAS=$(python -c 'import json, os, sys, pandas as pd

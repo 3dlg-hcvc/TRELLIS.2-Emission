@@ -97,7 +97,7 @@ def _pbr_voxelize(file, metadatum, pbr_dump_root, root):
                     pack[f'emission_voxelized_{res}'] = True
                     pack[f'num_emission_voxels_{res}'] = len(coord)
                 else:
-                    # Fallback: no emissive in dump (pre-emission pipeline), write zero emission
+                    # Fallback: the dump has no emissive channel, write zero emission
                     import numpy as _np
                     emissive_attr = {'emissive': _np.zeros((len(coord), 3), dtype=_np.uint8)}
                     o_voxel.io.write_vxz(os.path.join(root, f'emission_voxels_{res}', f'{sha256}.vxz'), coord, emissive_attr)

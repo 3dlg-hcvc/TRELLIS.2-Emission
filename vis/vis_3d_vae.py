@@ -2,8 +2,7 @@
 """Unified 3D interactive visualization for emission-VAE reconstruction.
 
 Renders GLB + GT emission + N experiment predictions per sample. All panels
-share a Three.js camera (design: docs/superpowers/specs/2026-04-22-vis-3d-consolidation-design.md
-in tag pre-refactor).
+share a Three.js camera.
 
 Usage:
   python vis/vis_3d_vae.py \\

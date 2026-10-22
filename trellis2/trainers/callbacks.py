@@ -237,11 +237,10 @@ class SnapshotCallback(pl.Callback):
 #     requeued job continues the same wandb run;
 #   * build_checkpoint_callback: top-k by val/loss plus last.ckpt every ckpt_last_every_n_steps, or
 #     upstream's step-interval mode;
-#   * CheckpointTimingCallback: the [ckpt-timing] lines; the snapshot watchers parse SAVE_START and
-#     RESUME_AFTER_SAVE;
-#   * TrainTraceCallback: the per-step [train] and per-validation [val] lines (formerly
-#     BasicTrainer.on_train_batch_end / on_validation_epoch_end). It is the last callback, as
-#     Lightning calls the module's own hooks after every callback's.
+#   * CheckpointTimingCallback: the [ckpt-timing] lines (LOAD, SAVE_START, RESUME_AFTER_SAVE,
+#     BATCH_TIME);
+#   * TrainTraceCallback: the per-step [train] and per-validation [val] lines. It is the last
+#     callback, as Lightning calls the module's own hooks after every callback's.
 
 
 def make_wandb_logger(project, name, entity, output_dir):
@@ -295,10 +294,10 @@ def build_checkpoint_callback(trainer_args: Dict[str, Any], ckpt_dir: str) -> Mo
         steps (default 200) so a hard crash loses at most that many steps; on a
         graceful (SIGTERM) requeue the trainer's signal handler still saves exact
         state. NOTE: never set this to 1 — rewriting the multi-GB checkpoint every
-        step blocks training on a Lustre write each step (~90% of wall-clock; see
+        step blocks training on a large write each step (see
         CheckpointTimingCallback). The top-k save itself is independent of this
         interval — it fires at validation-epoch end via the monitor metric.
-      * Legacy step-interval mode (``i_save`` set, no ``save_top_k``): keep all
+      * Upstream's step-interval mode (``i_save`` set, no ``save_top_k``): keep all
         checkpoints at the ``i_save`` step interval.
     """
     i_save = trainer_args.get("i_save")

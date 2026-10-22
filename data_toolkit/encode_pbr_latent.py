@@ -57,7 +57,7 @@ if __name__ == '__main__':
         latent_name = f'{opt.enc_pretrained.split("/")[-1]}_{opt.resolution}'
         # Force fp32 so weights match fp32 inputs (pretrained ckpt is fp16 per
         # name; Triton tl.dot asserts same dtype). Same fix as
-        # encode_shape_from_dual_grid.py (commit d842eb6).
+        # encode_shape_from_dual_grid.py.
         encoder = models.from_pretrained(opt.enc_pretrained).eval().float().cuda()
     else:
         latent_name = f'{opt.enc_model.split("/")[-1]}_{opt.ckpt}_{opt.resolution}'

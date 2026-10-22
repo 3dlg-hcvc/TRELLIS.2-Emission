@@ -6,8 +6,8 @@ Writes to `<data_root>/pbr_latents/<enc_name>_<res>/<sha>.npz`.
 
 Usage:
     python data_toolkit/encode_pbr_from_voxels.py \
-        --data_root data/lightgen_1k \
-        --parquet data/lightgen_1k/df_SomgProc_emission_filtered.parquet \
+        --data_root <root> \
+        --parquet <root>/df_lightgenbench.parquet \
         --resolution 256
 """
 from __future__ import annotations

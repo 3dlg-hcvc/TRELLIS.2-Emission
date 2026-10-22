@@ -42,7 +42,7 @@ class LightGenSLatEmission(Dataset):
     Args:
         data_root      Root of the processed data tree, containing
                        ``emission_voxels_{res}/`` and ``pbr_voxels_{res}/``.
-        parquet_file   Path to the parquet index (baked_uv_local_subset style).
+        parquet_file   Path to the parquet index.
         resolution     Voxel grid resolution used during voxelization.
         split          "train" / "val" / "test" / None.
         min_emission   Keep only samples whose max emission stat >= this value.

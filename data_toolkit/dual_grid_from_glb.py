@@ -215,8 +215,8 @@ def main() -> None:
             print(f"[dual_grid] rank {args.rank}: {i + 1}/{len(todo)} {n} {time.time() - t0:.0f}s", flush=True)
     os.rmdir(tmp_dir)
     print(f"[dual_grid] rank {args.rank} done: {n} in {time.time() - t0:.0f}s", flush=True)
-    # os._exit, not sys.exit: the interpreter's teardown of the loaded extensions aborted once on an L40S
-    # node after all the work was done (2026-10-12).
+    # os._exit, not sys.exit: the interpreter's teardown of the loaded extensions can abort after all
+    # the work is done.
     sys.stdout.flush(); sys.stderr.flush()
     os._exit(0 if n["ok"] + n["skipped"] == len(shas) else 1)
 

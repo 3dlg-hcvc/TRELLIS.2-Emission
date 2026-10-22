@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Emission DiT inference: the pbr->emission chain (the paper's and the release's).
+"""Emission DiT inference: the pbr->emission chain.
 
 Runs the emission DiT (in=96, skip_pbr_cond=false) and saves per-shape emission voxels
 (coords, pred, and gt_recon, gt_emission unless --pred_only) as npz under <out_dir>/pred_voxels/,
@@ -54,10 +54,8 @@ def load_latent(path):
 def sample_seed(sha: str, seed: int) -> int:
     """Per-shape RNG seed for `(sha, seed)`. Order-, batch- and skip-independent.
 
-    VERBATIM COPY of evaluation/newdata_eval/seedutil.py in the parent lightgen repo. Duplicated
-    because this submodule runs on cluster nodes where the parent is not checked out. Keep the
-    copies byte-identical. The value is the FULL unsigned 64-bit prefix, unmasked -- masking to
-    int63 gives a different RNG stream for the same nominal seed.
+    The value is the FULL unsigned 64-bit prefix of sha256("<sha>:<seed>"), unmasked -- masking
+    to int63 gives a different RNG stream for the same nominal seed.
     """
     return int.from_bytes(hashlib.sha256(f"{sha}:{seed}".encode()).digest()[:8], "big")
 
@@ -140,8 +138,8 @@ def main():
     # ---- DiT (in=96) ----
     p(f"Loading DiT: {args.dit_ckpt}")
     dit = build_models(dit_cfg["models"])["denoiser"]
-    # mmap=True: these checkpoints are ~20.7 GB and a plain load was OOM-killed on a busy
-    # workstation.
+    # mmap=True: these checkpoints are ~20.7 GB; mapping them keeps a plain load from
+    # holding a full copy in RAM.
     ck = torch.load(args.dit_ckpt, map_location="cpu", weights_only=False, mmap=True)["state_dict"]
     dit.load_state_dict({k.removeprefix("models.denoiser."): v for k, v in ck.items() if k.startswith("models.denoiser.")})
     dit.to(DEVICE).eval()
@@ -195,8 +193,7 @@ def main():
 
         # (D) sample DiT: noise(32) + concat_cond(64) -> [emission_noise, shape, pbr]=96
         _, img_feat = encode_image(sha); neg = torch.zeros_like(img_feat)
-        # GLOBAL seed, not a torch.Generator: the parent repo's
-        # docs/superpowers/specs/2026-08-15-multi-seed-evaluation-design.md §2.2.
+        # GLOBAL seed, not a torch.Generator: each shape's noise depends only on (sha, seed).
         torch.manual_seed(sample_seed(sha, args.seed))
         noise = z_emit_n.replace(torch.randn_like(z_emit_n.feats))
         with torch.autocast(device_type="cuda", dtype=torch.bfloat16):

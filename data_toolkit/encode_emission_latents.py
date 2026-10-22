@@ -2,8 +2,7 @@
 """Encode emission voxels to 32-ch latents using the pbr→emission VAE.
 
 The pbr→emission VAE (EmissionVaeTrainer) has a dedicated emission encoder with
-in_channels=3, so the raw 3-ch emission SparseTensor goes in directly (no pack-as-PBR
-step; that was the deleted albedo->emission VAE's, whose encoder took 6 PBR channels).
+in_channels=3, so the raw 3-ch emission SparseTensor goes in directly.
 
 The encoder weights are the `models.encoder.*` entries of the pbr→emission VAE's
 Lightning checkpoint (the trainable z_emission encoder; the frozen PBR encoder
@@ -20,7 +19,7 @@ Usage:
     python data_toolkit/encode_emission_latents.py \
         --data_root <root> \
         --parquet <root>/df_lightgenbench.parquet \
-        --vae_ckpt outputs/emission_vae_pbr2emission_lightgenbench_v1/ckpts/step0035400-0.0036.ckpt \
+        --vae_ckpt outputs/emission_vae_pbr2emission_lightgenbench_v1/ckpts/<checkpoint>.ckpt \
         --vae_cfg  outputs/emission_vae_pbr2emission_lightgenbench_v1/config.yaml \
         --latent_name emission_pbr2emission_lightgenbench_v1 \
         --resolution 256
@@ -100,14 +99,9 @@ def main() -> None:
     shas = shas_all[start:end]
     print(f"Samples in parquet: {len(shas_all)}  rank {args.rank}/{args.world_size} → {len(shas)}")
 
-    # NOTE: the encode loop deliberately accumulates NOTHING. An earlier version
-    # appended every shape's feats to an `all_feats` list here, but that list is
-    # provably dead: a non-aggregating rank returns and discards it, and the
-    # --aggregate_stats path resets it to [] and re-reads every .npz from disk.
-    # It was pure leak -- ~16 GB resident per rank after only ~5k shapes, which
-    # fir's 512 GB nodes absorbed but which the 62 GB workstation could not: the
-    # kernel OOM-killed rank 0 during startup on 2026-08-24. Removing it changes
-    # no output, because the stats come from the disk re-read below.
+    # NOTE: the encode loop deliberately keeps nothing per shape in memory: the
+    # --aggregate_stats path below re-reads every .npz from disk, so holding each
+    # shape's feats here would only grow memory (about 16 GB per rank after 5k shapes).
     processed, skipped, missing = 0, 0, 0
     for i, sha in enumerate(shas):
         out_path = os.path.join(save_dir, f"{sha}.npz")

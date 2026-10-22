@@ -11,12 +11,12 @@
 # <data_root>     written: emission_voxels_256/<uuid>.vxz, pbr_voxels_256/<uuid>.vxz, thumbnails/<uuid>.png,
 #                 df_lightgenbench.parquet and data_splits_lightgenbench.json (data_toolkit/build_lightgenbench_index.py).
 # The VAE trains on these; the DiT also needs the shape and PBR latents and the emission latents (README.md).
-# Run from the repo root in the python env of this repo (README.md, Setup).
+# Run from the repo root in the python env of this repo (README.md, Environment Setup).
 set -euo pipefail
 DL=$(realpath -m "${1:?download_dir}"); ROOT=$(realpath -m "${2:?data_root}")
 REPO=$(cd "$(dirname "$(readlink -f "$0")")/../.." && pwd)
 REPO_ID=${REPO_ID:-3dlg-hcvc/LightgenBench}
-# splits.json as released 2026-09-18: every published number uses this split.
+# The released splits.json: every published number uses this split.
 SPLITS_SHA256=${SPLITS_SHA256:-6ab3bae5453ba64a1c995a8c178c999cea6bb89f796918521752440b66dfe87e}
 WORKERS=${WORKERS:-8}
 mkdir -p "$DL" "$ROOT"

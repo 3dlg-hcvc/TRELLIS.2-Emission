@@ -1,12 +1,10 @@
 #!/usr/bin/env python
-"""Bake the pbr->emission _v3 VAE initial weights.
+"""Bake the emission VAE's initial weights from TRELLIS.2's pretrained PBR VAE.
 
-WHY THIS EXISTS
----------------
-The v3 config finetunes from the pretrained PBR VAE (tex_enc/tex_dec_next_dc_
-f16c32_fp16).  Four tensors differ in shape from the pretrained pair, and
-BasicTrainer._load_weights_for_model (trellis2/trainers/basic.py:385-394) drops
-any shape-mismatched tensor entirely, leaving it at its xavier init:
+The emission VAE config (configs/scvae/emission_vae_pbr2emission_lightgenbench_v1.yaml) finetunes
+from the pretrained PBR VAE (tex_enc/tex_dec_next_dc_f16c32_fp16).  Four tensors differ in shape
+from the pretrained pair, and BasicTrainer._load_weights_for_model (trellis2/trainers/basic.py)
+drops any shape-mismatched tensor entirely, leaving it at its xavier init:
 
     encoder.input_layer.weight    (64, 6)    -> (64, 3)
     decoder.from_latent.weight    (1024, 32) -> (1024, 64)
@@ -14,33 +12,24 @@ any shape-mismatched tensor entirely, leaving it at its xavier init:
     decoder.output_layer.bias     (6,)       -> (3,)
 
 A random tensor at either end of the information path destroys the pretrained
-function, so v3 cold-starts despite inheriting 99.992% of its weights.
+function, so the VAE would cold-start despite inheriting 99.992% of its weights.
 
 Every one of those four has an exact channel correspondence, so we resolve them
-OFFLINE and write out checkpoints whose shapes already match the v3
-architecture.  The trainer then performs a full 284/284 load with zero shape
-mismatches -- no trainer code is touched, and no other config can be affected.
-
-OPT-IN SURFACE
---------------
-Only the two `finetune_ckpt` paths of the emission VAE config
-(configs/scvae/emission_vae_pbr2emission_lightgenbench_v1.yaml; the paper run's
-emission_vae_pbr2emission_74k_v3_agentic did the same) point at this output.
-Every other config keeps its hub short-id, so the DiT config, which
-deliberately reinitializes its 64->96 input projection, is untouched by
-construction -- there is no flag to set wrong.
+OFFLINE and write out checkpoints whose shapes already match the emission VAE.
+The trainer then performs a full 284/284 load with zero shape mismatches.
+Only the two `finetune_ckpt` paths of the emission VAE config point at this
+output; every other config keeps its hub short-id, so the DiT config, which
+reinitializes its 64->96 input projection, is not affected.
 
 THE MAPPING
 -----------
 encoder.input_layer  : SparseLinear is nn.Linear (modules/sparse/linear.py:10),
     so weight is (out_features, in_features) and axis 1 is the input channel.
     The pretrained 6-channel order is [base_color(0:3), metallic, roughness,
-    alpha] (configs/scvae/tex_vae_next_dc_f16c32_fp16.yaml attrs), and the
-    albedo chain packs emission into the base_color slot
-    (EmissionPbrFinetuneTrainer._pack_emission_as_pbr, deleted in the refactor;
-    tag pre-refactor).  -> take columns 0:3.
-    The dropped columns 3:6 saw the CONSTANTS (-1, +1, +1), so their
-    contribution is a fixed offset, not data.  Discarding it silently changes
+    alpha] (configs/scvae/tex_vae_next_dc_f16c32_fp16.yaml attrs), and emission
+    takes the base_color slot  -> take columns 0:3.
+    Columns 3:6 are folded in at the CONSTANTS (-1, +1, +1) (PAD below), so
+    their contribution is a fixed offset, not data.  Discarding it would change
     the layer's operating point (||offset|| = 2.01 vs ||bias|| = 1.14), so it is
     folded into the bias.  NOTE this overwrites input_layer.bias, which is
     (64,) on both sides and therefore NOT one of the four mismatched tensors.
@@ -75,11 +64,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import torch
 from safetensors.torch import load_file, save_file
 
-# The albedo->emission chain's constant pad, in [-1, 1] space
-# (EmissionPbrFinetuneTrainer, deleted in the refactor; tag pre-refactor).
+# The constant metallic, roughness and alpha inputs folded into the encoder's bias, in [-1, 1] space.
 PAD = torch.tensor([-1.0, 1.0, 1.0])  # metallic, roughness, alpha
 EMI = 3   # emission channels == width of the base_color slot
-LAT = 32  # pretrained latent width; v3's decoder takes 2 * LAT
+LAT = 32  # pretrained latent width; the emission VAE's decoder takes 2 * LAT
 
 
 def bake_encoder(sd: dict) -> dict:
@@ -113,7 +101,7 @@ def bake_decoder(sd: dict) -> dict:
 def resolve_hub(short_id: str) -> str:
     """Resolve a hub short-id to a local .safetensors, honouring HF_HOME.
 
-    A cluster node may keep its HF cache outside the home directory, so a
+    A machine may keep its HF cache outside the home directory, so a
     hardcoded ~/.cache/huggingface is not portable.
     HF_HOME is checked first, then the default; `~` is only a fallback.
     """
@@ -134,7 +122,7 @@ def resolve_hub(short_id: str) -> str:
 
 
 def verify(cfg_path: str, baked: dict) -> int:
-    """Diff the baked state dicts against the v3 architecture built on meta."""
+    """Diff the baked state dicts against the config's architecture built on meta."""
     import yaml
     from trellis2.trainers.builders import build_models
 

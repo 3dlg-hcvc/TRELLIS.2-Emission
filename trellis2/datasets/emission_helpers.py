@@ -2,7 +2,7 @@
 Helpers shared by the two LightGen emission datasets, `sparse_voxel_emission.LightGenSLatEmission`
 (the emission VAE's data) and `structured_latent_emission.LightGenSLatEmissionLatent` (the emission
 DiT's data): the voxel and latent readers, the sparse collate, and the parquet / split-JSON sample
-list. Moved unchanged from `lightgen_slat.py` (deleted; tag pre-refactor keeps it).
+list.
 """
 
 from __future__ import annotations
@@ -93,7 +93,7 @@ def _sparse_collate(batch: List[Dict], split_size: Optional[int] = None):
 
 
 # ---------------------------------------------------------------------------
-# Parquet-based sample list builder (shared with lightgen_uv.py approach)
+# Parquet-based sample list builder
 # ---------------------------------------------------------------------------
 
 _DEFAULT_SPLIT_JSONS = [

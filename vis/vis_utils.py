@@ -1,8 +1,6 @@
 """Shared helpers for 3D interactive visualizations.
 
 Used by vis/vis_3d_vae.py and vis/vis_3d_dit.py.
-
-Design: docs/superpowers/specs/2026-04-22-vis-3d-consolidation-design.md in tag pre-refactor.
 """
 from __future__ import annotations
 
@@ -98,7 +96,7 @@ def load_samples(
         source: parquet path, *.json splits file, or "sha:sha1,sha2,...".
         select: one of "all", "first:<N>", "split:<name>", "sha:<csv>".
         glb_root: directory referenced by the parquet's ``glb_1k_path`` column.
-        latent_names: e.g. {"emission": "emission_vae_10sample_overfit"}.
+        latent_names: e.g. {"emission": "emission_pbr2emission_lightgenbench_v1"}.
         parquet_path: explicit path to the metadata parquet used when ``source``
             is a splits JSON.  If omitted, the parquet is auto-discovered by
             globbing ``<data_root>/df_*.parquet`` (exactly one match required).
@@ -208,10 +206,7 @@ def read_emission_voxel(path: str) -> tuple[torch.Tensor, torch.Tensor, int]:
 
 
 def emission_to_srgb_u8(feats_norm: torch.Tensor) -> torch.Tensor:
-    """Convert [-1, 1] linear emission to uint8 sRGB.
-
-    Identical curve to vis/vis_3d_overfit.py:184–192.
-    """
+    """Convert [-1, 1] linear emission to uint8 sRGB."""
     linear = (feats_norm * 0.5 + 0.5).clamp(0, 1)
     srgb = torch.where(
         linear <= 0.0031308,
@@ -266,7 +261,7 @@ _STEP_VAL_RE = re.compile(r"step(\d+)-(\d+\.\d+)\.ckpt$")
 
 
 def _pick_checkpoint(ckpt_dir: str) -> str:
-    """Apply the checkpoint-selection rule from the design spec:
+    """Apply the checkpoint-selection rule:
 
     1. If ckpt_dir/last.ckpt exists, use it.
     2. Else, parse files matching ``step{N}-{val_loss:.4f}.ckpt`` and pick
@@ -329,8 +324,8 @@ def resolve_experiment(label: str, path: str) -> ExperimentHandle:
 # EmissionPbrFinetuneTrainer) — shared by vis_3d_vae.py and vis_3d_dit.py.
 # =============================================================================
 
-# Constants mirror EmissionPbrFinetuneTrainer.{PAD_METALLIC, PAD_ROUGHNESS, PAD_ALPHA}
-# in trellis2/trainers/vae/emission_pbr_finetune.py (deleted in the refactor; tag pre-refactor).
+# The constant metallic, roughness and alpha with which the albedo→emission VAE
+# (EmissionPbrFinetuneTrainer) packs emission into the PBR layout.
 _PBR_PAD_METALLIC = -1.0
 _PBR_PAD_ROUGHNESS = 1.0
 _PBR_PAD_ALPHA = 1.0
