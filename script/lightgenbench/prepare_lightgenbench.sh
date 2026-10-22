@@ -6,7 +6,7 @@
 #
 # <download_dir>  the Hugging Face files TRELLIS.2-Emission uses: splits.json, checksums.sha256 and
 #                 data/{train,val,test}/{voxels,dual_grid,thumbnail}/*.tar (about 30 GB). The dataset is gated:
-#                 accept its terms on the Hugging Face page and run `huggingface-cli login` first. Files already
+#                 accept its terms on the Hugging Face page and run `hf auth login` first. Files already
 #                 there are kept; SKIP_DOWNLOAD=1 uses <download_dir> as it is.
 # <data_root>     written: emission_voxels_256/<uuid>.vxz, pbr_voxels_256/<uuid>.vxz, dual_grid_256/<uuid>.vxz,
 #                 thumbnails/<uuid>.png, df_lightgenbench.parquet and data_splits_lightgenbench.json

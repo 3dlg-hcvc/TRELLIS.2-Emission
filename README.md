@@ -61,7 +61,7 @@ DIT_CKPT=outputs/emission_dit_pbr2emission_lightgenbench_v1/ckpts/<checkpoint>.c
 Score the predictions with the LightGenBench evaluation: https://github.com/3dlg-hcvc/lightgenbench
 
 ### With our checkpoint
-Our VAE and DiT checkpoints, coming soon in the Hugging Face repo [3dlg-hcvc/LightgenBench-baselines](https://huggingface.co/3dlg-hcvc/LightgenBench-baselines), replace the Training section; the Data Setup is still needed:
+Our VAE and DiT checkpoints, coming soon in the Hugging Face repo `3dlg-hcvc/LightgenBench-baselines`, replace the Training section; the Data Setup is still needed:
 ```bash
 # Download our VAE and DiT checkpoints, each with its config, into checkpoints/TRELLIS.2-Emission/
 hf download 3dlg-hcvc/LightgenBench-baselines --include "TRELLIS.2-Emission/*" --local-dir checkpoints
