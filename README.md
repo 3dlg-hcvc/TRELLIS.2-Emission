@@ -13,6 +13,10 @@ Run every command in this README from the root of the repository:
 
 # Install the packages for training and data preparation
 pip install lightning==2.6.1 pyarrow wandb
+
+# The image encoder DINOv3 is gated: request access at https://huggingface.co/facebook/dinov3-vitl16-pretrain-lvd1689m,
+# then log in to Hugging Face with that account
+hf auth login
 ```
 
 
@@ -30,7 +34,23 @@ bash script/lightgenbench/run_chain.sh latents <data_root>
 A shape without a dual grid in `<data_root>/dual_grid_256/` is built from its [TexVerse-1K](https://huggingface.co/datasets/YiboZhang2001/TexVerse-1K) GLB when `TEXVERSE_1K=<dir>` is set.
 
 
+## Prediction with Our Checkpoint
+This needs the Environment Setup and Data Setup above; our VAE and DiT checkpoints are coming soon in the Hugging Face repo `3dlg-hcvc/LightgenBench-baselines`.
+Predict the emission of the test split with them:
+```bash
+# Download our VAE and DiT checkpoints, each with its config, into checkpoints/TRELLIS.2-Emission/
+hf download 3dlg-hcvc/LightgenBench-baselines --include "TRELLIS.2-Emission/*" --local-dir checkpoints
+
+# Write predictions to outputs/predict_test_seed0/pred_voxels/ (SEED=<n> writes outputs/predict_test_seed<n>/)
+VAE_CKPT=checkpoints/TRELLIS.2-Emission/vae/ckpts/vae.ckpt \
+DIT_CKPT=checkpoints/TRELLIS.2-Emission/dit/ckpts/dit.ckpt \
+    bash script/lightgenbench/run_chain.sh predict <data_root>
+```
+Score the predictions with the LightGenBench evaluation: https://github.com/3dlg-hcvc/lightgenbench
+
+
 ## Training
+Training finetunes TRELLIS.2's PBR VAE into the emission VAE and its texture flow model into the DiT, both downloaded from Hugging Face (`microsoft/TRELLIS.2-4B`) on first use.
 Train the emission VAE, encode the emission latents with it, then train the DiT on those latents:
 ```bash
 # Train the emission VAE in outputs/emission_vae_pbr2emission_lightgenbench_v1/
@@ -50,25 +70,12 @@ A run starts in an empty folder, and `RESUME=1` continues it.
 The header of `script/lightgenbench/run_chain.sh` lists the other settings.
 
 
-## Prediction
-Predict the emission of the test split, giving the VAE checkpoint whose latents the DiT was trained on and a DiT checkpoint (choose it on the validation split):
+## Prediction with Your Checkpoint
+The same as Prediction with Our Checkpoint, with the VAE checkpoint whose latents the DiT was trained on and a DiT checkpoint from Training (choose it on the validation split):
 ```bash
-# Write predictions to outputs/predict_test_seed0/pred_voxels/ (SEED=<n> writes outputs/predict_test_seed<n>/)
+# Write predictions to outputs/predict_test_seed0/pred_voxels/
 VAE_CKPT=outputs/emission_vae_pbr2emission_lightgenbench_v1/ckpts/<checkpoint>.ckpt \
 DIT_CKPT=outputs/emission_dit_pbr2emission_lightgenbench_v1/ckpts/<checkpoint>.ckpt \
-    bash script/lightgenbench/run_chain.sh predict <data_root>
-```
-Score the predictions with the LightGenBench evaluation: https://github.com/3dlg-hcvc/lightgenbench
-
-### With our checkpoint
-Our VAE and DiT checkpoints, coming soon in the Hugging Face repo `3dlg-hcvc/LightgenBench-baselines`, replace the Training section; the Data Setup is still needed:
-```bash
-# Download our VAE and DiT checkpoints, each with its config, into checkpoints/TRELLIS.2-Emission/
-hf download 3dlg-hcvc/LightgenBench-baselines --include "TRELLIS.2-Emission/*" --local-dir checkpoints
-
-# Write predictions to outputs/predict_test_seed0/pred_voxels/
-VAE_CKPT=checkpoints/TRELLIS.2-Emission/vae/ckpts/vae.ckpt \
-DIT_CKPT=checkpoints/TRELLIS.2-Emission/dit/ckpts/dit.ckpt \
     bash script/lightgenbench/run_chain.sh predict <data_root>
 ```
 
