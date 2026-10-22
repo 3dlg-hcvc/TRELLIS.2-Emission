@@ -61,20 +61,14 @@ DIT_CKPT=outputs/emission_dit_pbr2emission_lightgenbench_v1/ckpts/<checkpoint>.c
 Score the predictions with the LightGenBench evaluation: https://github.com/3dlg-hcvc/lightgenbench
 
 ### With our checkpoint
-Our VAE and DiT checkpoints replace the Training section; the Data Setup is still needed.
-Place them in the run folders training writes, with each run's config from `configs/` as `config.yaml` one level above its checkpoint, and predict as above:
+Our VAE and DiT checkpoints, coming soon in the Hugging Face repo [3dlg-hcvc/LightgenBench-baselines](https://huggingface.co/3dlg-hcvc/LightgenBench-baselines), replace the Training section; the Data Setup is still needed:
 ```bash
-# Make the two run folders and copy each run's config into its folder
-mkdir -p outputs/emission_vae_pbr2emission_lightgenbench_v1/ckpts outputs/emission_dit_pbr2emission_lightgenbench_v1/ckpts
-cp configs/scvae/emission_vae_pbr2emission_lightgenbench_v1.yaml outputs/emission_vae_pbr2emission_lightgenbench_v1/config.yaml
-cp configs/gen/emission_dit_pbr2emission_lightgenbench_v1.yaml outputs/emission_dit_pbr2emission_lightgenbench_v1/config.yaml
-
-# Download our VAE and DiT checkpoints into the two ckpts/ folders
-# (coming soon: the Checkpoint column of https://github.com/3dlg-hcvc/lightgenbench#baselines)
+# Download our VAE and DiT checkpoints, each with its config, into checkpoints/TRELLIS.2-Emission/
+hf download 3dlg-hcvc/LightgenBench-baselines --include "TRELLIS.2-Emission/*" --local-dir checkpoints
 
 # Write predictions to outputs/predict_test_seed0/pred_voxels/
-VAE_CKPT=outputs/emission_vae_pbr2emission_lightgenbench_v1/ckpts/<our VAE checkpoint>.ckpt \
-DIT_CKPT=outputs/emission_dit_pbr2emission_lightgenbench_v1/ckpts/<our DiT checkpoint>.ckpt \
+VAE_CKPT=checkpoints/TRELLIS.2-Emission/vae/ckpts/vae.ckpt \
+DIT_CKPT=checkpoints/TRELLIS.2-Emission/dit/ckpts/dit.ckpt \
     bash script/lightgenbench/run_chain.sh predict <data_root>
 ```
 
