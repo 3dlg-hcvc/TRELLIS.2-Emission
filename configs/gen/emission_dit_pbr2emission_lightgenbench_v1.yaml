@@ -1,4 +1,4 @@
-# Emission DiT (pbr->emission) on LightgenBench, finetuned from TRELLIS.2's
+# Emission DiT (pbr->emission) on LightGenBench, finetuned from TRELLIS.2's
 # slat_flow_imgshape2tex_dit_1_3B_512_bf16 and conditioned on the object's thumbnail (DINOv3).
 #
 # Each token's input is 96 channels, [x_t emission latent 32 | shape latent 32 | PBR latent 32], and its

@@ -1,4 +1,4 @@
-"""LightgenBench splits.json -> the two index files the emission datasets read (trellis2/datasets/emission_helpers.py).
+"""LightGenBench splits.json -> the two index files the emission datasets read (trellis2/datasets/emission_helpers.py).
 
 The dataset classes are used unchanged. _build_parquet_samples takes
   * a parquet whose index is the sample id (rows with success != True are dropped), and

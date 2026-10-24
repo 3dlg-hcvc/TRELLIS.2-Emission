@@ -1,5 +1,5 @@
 #!/bin/bash
-# Download the LightgenBench release (Hugging Face 3dlg-hcvc/LightgenBench) and lay it out the way the emission
+# Download the LightGenBench release (Hugging Face 3dlg-hcvc/LightgenBench) and lay it out the way the emission
 # VAE and DiT datasets read it.
 #
 #   bash script/lightgenbench/prepare_lightgenbench.sh <download_dir> <data_root>

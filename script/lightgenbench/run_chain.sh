@@ -1,5 +1,5 @@
 #!/bin/bash
-# The pbr->emission chain on LightgenBench, one stage per call, in the order below:
+# The pbr->emission chain on LightGenBench, one stage per call, in the order below:
 #
 #   bash script/lightgenbench/run_chain.sh latents <data_root>                     # shape + PBR latents
 #   bash script/lightgenbench/run_chain.sh vae <data_root>                         # bake the init, train the VAE

@@ -1,4 +1,4 @@
-# Emission VAE (pbr->emission) on LightgenBench.
+# Emission VAE (pbr->emission) on LightGenBench.
 #
 # The encoder takes the 3-channel emission and gives the 32-channel emission latent; the decoder takes
 # cat(z_emission 32, z_pbr 32), where z_pbr comes from TRELLIS.2's frozen PBR encoder
